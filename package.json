@@ -1,0 +1,35 @@
+{
+  "name": "reflector-panel",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-phantom": "^0.9.29",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-adapter-solflare": "^0.6.33",
+    "@solana/web3.js": "^1.98.4",
+    "@tanstack/react-query": "^5.101.2",
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.17",
+    "autoprefixer": "^10.5.2",
+    "bs58": "^6.0.0",
+    "next": "^14.2.35",
+    "postcss": "^8.5.16",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.19",
+    "tweetnacl": "^1.0.3",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-surface-950 text-slate-200 antialiased;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-surface-900/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl;
+  }
+  .glass-input {
+    @apply bg-surface-800 border border-slate-600/50 rounded-xl px-4 py-3 text-slate-100 
+           placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-2 
+           focus:ring-brand-500/20 transition-all w-full;
+  }
+  .btn-primary {
+    @apply bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 
+           text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-brand-500/25 
+           transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed 
+           disabled:active:scale-100;
+  }
+  .btn-secondary {
+    @apply bg-surface-800 hover:bg-surface-700 text-slate-300 font-medium py-3 px-6 
+           rounded-xl border border-slate-600/50 transition-all active:scale-[0.98];
+  }
+}
+
+/* Custom range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 9999px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #6366f1;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+input[type="range"].from-slider::-webkit-slider-thumb {
+  background: #6366f1;
+}
+input[type="range"].to-slider::-webkit-slider-thumb {
+  background: #a78bfa;
+}
