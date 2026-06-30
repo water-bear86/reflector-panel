@@ -50,6 +50,7 @@ export default function Home() {
   const [step, setStep] = useState<Step>("source");
   const [error, setError] = useState("");
   const [generatedSnippet, setGeneratedSnippet] = useState("");
+  const [compactSnippet, setCompactSnippet] = useState("");
 
   const totalPct = useMemo(() => rules.reduce((s, r) => s + r.pct, 0), [rules]);
 
@@ -64,9 +65,10 @@ export default function Home() {
 
   /* ── Generate cron snippet ───────────────────────────────────────── */
   const generateJob = () => {
+    const wallet = sourceWallet.trim() || publicKey?.toBase58() || "";
     const input = {
       sourceMint: sourceMint.trim(),
-      sourceWallet: sourceWallet.trim() || publicKey?.toBase58() || "",
+      sourceWallet: wallet,
       network: "mainnet",
       rules: rules.filter((r) => r.pct > 0).map((r) => ({
         type: r.type,
@@ -77,8 +79,11 @@ export default function Home() {
       })),
     };
 
-    const json = JSON.stringify(input, null, 2);
-    setGeneratedSnippet(json);
+    const formatted = JSON.stringify(input, null, 2);
+    const compact = JSON.stringify(input);
+    setGeneratedSnippet(formatted);
+    setCompactSnippet(compact);
+    setSourceWallet(wallet); // persist auto-filled wallet
     setStep("done");
 
     // POST to /api/auto-config for the poller
@@ -100,6 +105,7 @@ export default function Home() {
     setCronExpr("every 30m");
     setError("");
     setGeneratedSnippet("");
+    setCompactSnippet("");
   };
 
   const cardClasses = (s: Step): string => {
@@ -178,11 +184,12 @@ export default function Home() {
               <input className="glass-input font-mono text-sm" value={sourceMint} onChange={(e) => setSourceMint(e.target.value)} placeholder="Paste the SPL token mint…" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Wallet Holding Rewards (optional)</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Wallet Holding Rewards</label>
               <input className="glass-input font-mono text-sm" value={sourceWallet} onChange={(e) => setSourceWallet(e.target.value)} placeholder={connected ? publicKey?.toBase58() || "Connect wallet first" : "Connect wallet to auto-fill"} />
               {connected && !sourceWallet && (
                 <button className="text-xs text-brand-400 mt-1 hover:underline" onClick={() => setSourceWallet(publicKey!.toBase58())}>Use connected wallet</button>
               )}
+              <p className="text-[10px] text-slate-500 mt-1">The cron poller checks this wallet's balance. Connect wallet to auto-fill.</p>
             </div>
             <button className="btn-primary w-full" onClick={() => setStep("split")} disabled={!sourceMint.trim()}>Continue to Split Rules →</button>
           </div>
@@ -321,13 +328,13 @@ export default function Home() {
 
               <div className="p-4 rounded-xl bg-surface-800/60 border border-slate-700/30">
                 <p className="text-xs font-semibold text-slate-300 mb-2">⏱️ Hermes Cron Command</p>
-                <p className="text-xs text-slate-500 mb-2">Paste this into Hermes to fire immediately (or hand it to a cron job):</p>
+                <p className="text-xs text-slate-500 mb-2">Paste this to run once, or save to <code className="text-amber-300">~/.hermes/scripts/reflector-jobs.json</code> for the cron poller:</p>
                 <pre className="bg-surface-950 border border-slate-700/50 rounded-lg p-3 text-xs font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap break-all">
 {`curl -s -X POST https://reflector-panel.vercel.app/api/reflect \\
   -H "Content-Type: application/json" \\
-  -d '${generatedSnippet.replace(/\n/g, "\\n")}'`}
+  -d '${compactSnippet}'`}
                 </pre>
-                <CopyButton text={`curl -s -X POST https://reflector-panel.vercel.app/api/reflect -H "Content-Type: application/json" -d '${generatedSnippet.replace(/\n/g, "\\n")}'`} />
+                <CopyButton text={`curl -s -X POST https://reflector-panel.vercel.app/api/reflect -H "Content-Type: application/json" -d '${compactSnippet}'`} />
               </div>
             </div>
 

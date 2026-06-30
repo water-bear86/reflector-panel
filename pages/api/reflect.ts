@@ -82,23 +82,19 @@ export default async function handler(
 
   const body = req.body as ReflectInput;
   if (!body.sourceMint?.trim()) return res.status(400).json({ error: "sourceMint required" });
-  if (!body.sourceWallet?.trim()) return res.status(400).json({ error: "sourceWallet required" });
   if (!body.rules?.length) return res.status(400).json({ error: "rules required" });
 
   const sourceMint = body.sourceMint.trim();
-  const sourceWallet = body.sourceWallet.trim();
+  const sourceWallet = (body.sourceWallet || "").trim();
   const network = body.network === "devnet" ? "devnet" : "mainnet";
 
   try {
     // Check actual balance of reward token
-    const balance = await getTokenBalance(sourceMint, sourceWallet);
-    if (balance < 0) return res.status(200).json({
-      sourceMint, sourceWallet, network, totalBalance: -1,
-      rules: body.rules.map((r) => ({
-        type: r.type, pct: r.pct, targetMint: r.targetMint, targetWallet: r.targetWallet,
-        holderMint: r.holderMint, estimatedAmount: 0,
-      })),
-    });
+    let balance = 0;
+    if (sourceWallet) {
+      balance = await getTokenBalance(sourceMint, sourceWallet);
+      if (balance < 0) balance = 0;
+    }
 
     const results: RuleResult[] = [];
 
