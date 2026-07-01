@@ -45,6 +45,24 @@ export interface RuleResult {
   [key: string]: unknown;
 }
 
+/* ── Turn any thrown value into a useful string. web3.js/SPL sometimes throw non-Error objects
+   (e.g. SendTransactionError with a `.logs` array), which otherwise collapse to "unknown error". ── */
+function describeError(err: unknown): string {
+  if (err instanceof Error) {
+    const anyErr = err as any;
+    const logs: string[] | undefined = anyErr.logs || anyErr.transactionLogs;
+    const base = `${err.name}: ${err.message}`.trim();
+    const withLogs = logs?.length ? `${base} | logs: ${logs.slice(-6).join(" ⏎ ")}` : base;
+    return withLogs || "Error (no message)";
+  }
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err) || String(err);
+  } catch {
+    return String(err);
+  }
+}
+
 /* ── Jupiter swap — returns the raw (base-unit) output amount, still in the output mint's own decimals ── */
 async function jupiterSwap(keypair: Keypair, inputMint: string, outputMint: string, amount: number) {
   const quoteUrl = `${JUPITER_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=100`;
@@ -308,15 +326,26 @@ export async function runPipeline(record: PipelineRecord): Promise<{ ok: boolean
 
     if (sourceBalance <= 0) return { ok: true, results };
 
-    for (const rule of record.rules) {
+    const failures: string[] = [];
+    for (let i = 0; i < record.rules.length; i++) {
+      const rule = record.rules[i];
       const ruleAmountRaw = Math.floor(sourceBalance * (rule.pct / 100));
       if (ruleAmountRaw <= 0) continue;
-      const result = await executeRule(keypair, record.sourceMint, sourceAta, ruleAmountRaw, rule, isSol);
-      results.push(result);
+      try {
+        const result = await executeRule(keypair, record.sourceMint, sourceAta, ruleAmountRaw, rule, isSol);
+        results.push(result);
+      } catch (err: unknown) {
+        // Record the exact failure per-rule and keep going, so one run surfaces every problem
+        // rather than aborting on the first and hiding the rest.
+        const detail = describeError(err);
+        results.push({ type: rule.type, pct: rule.pct, error: detail });
+        failures.push(`rule ${i + 1} (${rule.type}): ${detail}`);
+      }
     }
 
+    if (failures.length) return { ok: false, results, error: failures.join(" | ") };
     return { ok: true, results };
-  } catch (err: any) {
-    return { ok: false, results, error: err.message };
+  } catch (err: unknown) {
+    return { ok: false, results, error: describeError(err) };
   }
 }
