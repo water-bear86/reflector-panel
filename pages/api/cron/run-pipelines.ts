@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { listEnabledPipelines, recordRun, isDue } from "../../../lib/pipelineStore";
+import { claimDuePipelineRun, listEnabledPipelines, recordRun, isDue } from "../../../lib/pipelineStore";
 import { runPipeline } from "../../../lib/pipelineExecutor";
 
 /* ── GET /api/cron/run-pipelines ─────────────────────────────────────
@@ -20,6 +20,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   for (const record of pipelines) {
     if (!isDue(record, now)) {
       summary.push({ id: record.id, ran: false });
+      continue;
+    }
+
+    const claimed = await claimDuePipelineRun(record, now);
+    if (!claimed) {
+      summary.push({ id: record.id, ran: false, status: "claimed" });
       continue;
     }
 

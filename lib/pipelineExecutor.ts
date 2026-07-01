@@ -47,6 +47,12 @@ export interface RuleResult {
   [key: string]: unknown;
 }
 
+interface TokenHolder {
+  address: string;
+  balanceRaw: bigint;
+  pct: number;
+}
+
 /* ── Turn any thrown value into a useful string. web3.js/SPL sometimes throw non-Error objects
    (e.g. SendTransactionError with a `.logs` array), which otherwise collapse to "unknown error". ── */
 function describeError(err: unknown): string {
@@ -93,6 +99,40 @@ async function ataBalance(ata: PublicKey, programId: PublicKey): Promise<bigint>
   }
 }
 
+async function waitForAtaDelta(ata: PublicKey, programId: PublicKey, pre: bigint): Promise<bigint> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const current = await ataBalance(ata, programId);
+    const delta = current - pre;
+    if (delta > 0n) return delta;
+    await sleep(500 * (attempt + 1));
+  }
+  return (await ataBalance(ata, programId)) - pre;
+}
+
+async function getConfirmedOutputDelta(signature: string, owner: PublicKey, outputMint: string): Promise<bigint | null> {
+  const ownerAddress = owner.toBase58();
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const tx = await connection.getParsedTransaction(signature, {
+      commitment: "confirmed",
+      maxSupportedTransactionVersion: 0,
+    });
+
+    if (tx?.meta) {
+      const sumBalances = (balances: typeof tx.meta.preTokenBalances | typeof tx.meta.postTokenBalances) =>
+        (balances || [])
+          .filter((b) => b.mint === outputMint && b.owner === ownerAddress)
+          .reduce((sum, b) => sum + BigInt(b.uiTokenAmount.amount), 0n);
+
+      return sumBalances(tx.meta.postTokenBalances) - sumBalances(tx.meta.preTokenBalances);
+    }
+
+    await sleep(500 * (attempt + 1));
+  }
+
+  return null;
+}
+
 /* ── Jupiter swap — returns the raw (base-unit) output amount, still in the output mint's own decimals ── */
 async function jupiterSwap(keypair: Keypair, inputMint: string, outputMint: string, amount: number) {
   const quoteUrl = `${JUPITER_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=100`;
@@ -124,7 +164,8 @@ async function jupiterSwap(keypair: Keypair, inputMint: string, outputMint: stri
     { signature: sig, blockhash: bh.blockhash, lastValidBlockHeight: bh.lastValidBlockHeight },
     "confirmed"
   );
-  return { txid: sig, outAmountRaw: Number(quoteData.outAmount) };
+  const actualOutAmountRaw = await getConfirmedOutputDelta(sig, keypair.publicKey, outputMint);
+  return { txid: sig, quotedOutAmountRaw: BigInt(quoteData.outAmount), actualOutAmountRaw };
 }
 
 /* ── Burn tokens — `amountRaw` is already in the mint's base units ── */
@@ -145,25 +186,27 @@ async function distributeTokens(
   mintPubkey: PublicKey,
   sourceAta: PublicKey,
   programId: PublicKey,
-  holders: { address: string; pct: number }[],
-  totalRawAmount: number
+  holders: TokenHolder[],
+  totalRawAmount: bigint
 ) {
-  const results: { address: string; amountRaw: number; txid: string }[] = [];
+  const results: { address: string; amountRaw: string; txid: string }[] = [];
+  const totalHolderBalance = holders.reduce((sum, h) => sum + h.balanceRaw, 0n);
+  if (totalHolderBalance <= 0n) return results;
 
   const BATCH_SIZE = 5; // each transfer also carries an ATA-create instruction, so keep batches small
   for (let i = 0; i < holders.length; i += BATCH_SIZE) {
     const batch = holders.slice(i, i + BATCH_SIZE);
     const tx = new Transaction().add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }));
-    const included: { address: string; amountRaw: number }[] = [];
+    const included: { address: string; amountRaw: string }[] = [];
 
     for (const h of batch) {
-      const amountRaw = Math.floor(totalRawAmount * (h.pct / 100));
-      if (amountRaw <= 0) continue;
+      const amountRaw = (totalRawAmount * h.balanceRaw) / totalHolderBalance;
+      if (amountRaw <= 0n) continue;
       const dest = new PublicKey(h.address);
       const destAta = await getAssociatedTokenAddress(mintPubkey, dest, false, programId);
       tx.add(createAssociatedTokenAccountIdempotentInstruction(keypair.publicKey, destAta, dest, mintPubkey, programId));
       tx.add(createTransferInstruction(sourceAta, destAta, keypair.publicKey, amountRaw, [], programId));
-      included.push({ address: h.address, amountRaw });
+      included.push({ address: h.address, amountRaw: amountRaw.toString() });
     }
 
     if (included.length) {
@@ -205,7 +248,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /* ── Snapshot holders via Helius — with backoff so a transient rate-limit doesn't abort the run
    (aborting mid-distribute would strand already-swapped tokens in the wallet). ── */
-async function getTokenHolders(mint: string): Promise<{ address: string; balance: number; pct: number }[]> {
+function parseRawAmount(value: unknown): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number") return Number.isFinite(value) && value > 0 ? BigInt(Math.trunc(value)) : 0n;
+  if (typeof value === "string" && /^\d+$/.test(value)) return BigInt(value);
+  return 0n;
+}
+
+async function getTokenHolders(mint: string, excludeOwner?: PublicKey): Promise<TokenHolder[]> {
   if (!HELIUS_KEY) throw new Error("HELIUS_API_KEY required for holder snapshots");
 
   let allHolders: any[] = [];
@@ -244,22 +294,25 @@ async function getTokenHolders(mint: string): Promise<{ address: string; balance
 
   // Only distribute to real wallets. Off-curve owners are pools / program vaults / bonding-curve
   // accounts — they throw TokenOwnerOffCurveError on ATA derivation and shouldn't be rewarded anyway.
-  const eligible = allHolders.filter((h) => {
-    if (!(h.amount > 0) || h.owner === "11111111111111111111111111111111") return false;
+  const excluded = excludeOwner?.toBase58();
+  const eligible = allHolders.flatMap((h) => {
+    const balanceRaw = parseRawAmount(h.amount);
+    if (balanceRaw <= 0n || h.owner === "11111111111111111111111111111111" || h.owner === excluded) return [];
     try {
-      return PublicKey.isOnCurve(new PublicKey(h.owner).toBytes());
+      if (!PublicKey.isOnCurve(new PublicKey(h.owner).toBytes())) return [];
     } catch {
-      return false;
+      return [];
     }
+    return [{ owner: h.owner, balanceRaw }];
   });
-  const total = eligible.reduce((sum, h) => sum + (h.amount || 0), 0);
+  const total = eligible.reduce((sum, h) => sum + h.balanceRaw, 0n);
   return eligible
     .map((h) => ({
       address: h.owner,
-      pct: total > 0 ? ((h.amount || 0) / total) * 100 : 0,
-      balance: h.amount || 0,
+      balanceRaw: h.balanceRaw,
+      pct: total > 0n ? Number((h.balanceRaw * 1_000_000n) / total) / 10_000 : 0,
     }))
-    .sort((a, b) => b.balance - a.balance);
+    .sort((a, b) => (a.balanceRaw === b.balanceRaw ? 0 : a.balanceRaw > b.balanceRaw ? -1 : 1));
 }
 
 async function executeRule(
@@ -290,14 +343,14 @@ async function executeRule(
       // filled amount can be less than quoted, and burning more than we hold fails the whole tx.
       const pre = await ataBalance(ata, programId);
       const swapResult = await jupiterSwap(keypair, sourceMint, rule.targetMint, ruleAmountRaw);
-      const received = (await ataBalance(ata, programId)) - pre;
+      const received = swapResult.actualOutAmountRaw ?? await waitForAtaDelta(ata, programId, pre);
       if (received <= 0n) {
         return { type: "buy-burn", pct: rule.pct, swappedRaw: ruleAmountRaw, burnedRaw: 0, swapTxid: swapResult.txid, note: "nothing received to burn" };
       }
       const burnResult = await burnTokens(keypair, mintPk, ata, received, programId);
       return {
         type: "buy-burn", pct: rule.pct,
-        swappedRaw: ruleAmountRaw, burnedRaw: Number(received),
+        swappedRaw: ruleAmountRaw, burnedRaw: received.toString(),
         swapTxid: swapResult.txid, burnTxid: burnResult.txid,
       };
     }
@@ -310,14 +363,14 @@ async function executeRule(
       const srcAta = await getAssociatedTokenAddress(mintPk, keypair.publicKey, false, programId);
       const pre = await ataBalance(srcAta, programId);
       const swapResult = await jupiterSwap(keypair, sourceMint, rule.targetMint, ruleAmountRaw);
-      const received = Number((await ataBalance(srcAta, programId)) - pre);
+      const received = swapResult.actualOutAmountRaw ?? await waitForAtaDelta(srcAta, programId, pre);
 
-      const holders = await getTokenHolders(rule.holderMint);
-      const distResults = received > 0 ? await distributeTokens(keypair, mintPk, srcAta, programId, holders, received) : [];
+      const holders = await getTokenHolders(rule.holderMint, keypair.publicKey);
+      const distResults = received > 0n ? await distributeTokens(keypair, mintPk, srcAta, programId, holders, received) : [];
 
       return {
         type: "distribute", pct: rule.pct,
-        swappedRaw: ruleAmountRaw, receivedRaw: received,
+        swappedRaw: ruleAmountRaw, receivedRaw: received.toString(),
         swapTxid: swapResult.txid, totalHolders: holders.length, distributed: distResults.length,
         distributions: distResults.slice(0, 20),
       };

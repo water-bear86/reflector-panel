@@ -104,6 +104,24 @@ export async function listEnabledPipelines(): Promise<PipelineRecord[]> {
   return (data as PipelineRow[]).map(fromRow);
 }
 
+export async function claimDuePipelineRun(record: PipelineRecord, now: number): Promise<boolean> {
+  let query = getSupabase()
+    .from("pipelines")
+    .update({
+      last_run_at: new Date(now).toISOString(),
+      last_run_summary: "running",
+    })
+    .eq("id", record.id)
+    .eq("enabled", true)
+    .select("id");
+
+  query = record.lastRunAt ? query.eq("last_run_at", record.lastRunAt) : query.is("last_run_at", null);
+
+  const { data, error } = await query;
+  if (error) throw new Error(`Failed to claim pipeline ${record.id}: ${error.message}`);
+  return (data || []).length === 1;
+}
+
 export async function recordRun(
   id: string,
   update: { status: "success" | "error"; summary: string; results?: unknown[] }
