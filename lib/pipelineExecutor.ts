@@ -154,26 +154,42 @@ async function transferSol(keypair: Keypair, toWallet: string, lamports: number)
   return { txid: sig };
 }
 
-/* ── Snapshot holders via Helius ── */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/* ── Snapshot holders via Helius — with backoff so a transient rate-limit doesn't abort the run
+   (aborting mid-distribute would strand already-swapped tokens in the wallet). ── */
 async function getTokenHolders(mint: string): Promise<{ address: string; balance: number; pct: number }[]> {
   if (!HELIUS_KEY) throw new Error("HELIUS_API_KEY required for holder snapshots");
 
   let allHolders: any[] = [];
   let cursor: string | null = null;
   const url = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`;
+  const MAX_RETRIES = 5;
 
   do {
-    const heliusRes = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0", id: 1,
-        method: "getTokenAccounts",
-        params: { mint, limit: 1000, cursor, displayOptions: { showZeroBalance: false } },
-      }),
-    });
-    const data: any = await heliusRes.json();
-    if (data.error) throw new Error(`Helius error: ${data.error.message}`);
+    let data: any;
+    for (let attempt = 0; ; attempt++) {
+      const heliusRes = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0", id: 1,
+          method: "getTokenAccounts",
+          params: { mint, limit: 1000, cursor, displayOptions: { showZeroBalance: false } },
+        }),
+      });
+      const rateLimited = heliusRes.status === 429;
+      data = rateLimited ? null : await heliusRes.json().catch(() => null);
+      const errMsg: string | undefined = data?.error?.message;
+      const transient = rateLimited || (errMsg && /rate limit|429|too many/i.test(errMsg));
+
+      if (data && !data.error) break; // success
+      if (transient && attempt < MAX_RETRIES) {
+        await sleep(500 * 2 ** attempt); // 0.5s, 1s, 2s, 4s, 8s
+        continue;
+      }
+      throw new Error(`Helius error: ${errMsg ?? (rateLimited ? "rate limited" : "request failed")}`);
+    }
     const items: any[] = data.result?.token_accounts || [];
     allHolders.push(...items);
     cursor = data.result?.cursor;
