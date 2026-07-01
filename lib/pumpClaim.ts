@@ -38,7 +38,7 @@ export async function claimCreatorFees(connection: Connection, keypair: Keypair)
     const tx = VersionedTransaction.deserialize(new Uint8Array(buf));
     tx.sign([keypair]);
 
-    const txid = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false, maxRetries: 3 });
+    const txid = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true, maxRetries: 3 });
     const bh = await connection.getLatestBlockhash();
     await connection.confirmTransaction(
       { signature: txid, blockhash: bh.blockhash, lastValidBlockHeight: bh.lastValidBlockHeight },
