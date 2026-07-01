@@ -12,7 +12,10 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-const MAINNET_RPC = "https://api.mainnet-beta.solana.com";
+const HELIUS_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY || "";
+const MAINNET_RPC = HELIUS_KEY
+  ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`
+  : "https://api.mainnet-beta.solana.com";
 
 export function SolanaWalletProvider({
   children,

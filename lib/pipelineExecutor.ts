@@ -261,18 +261,17 @@ function parseRawAmount(value: unknown): bigint {
   return 0n;
 }
 
-async function getTokenHolders(mint: string, excludeOwner?: PublicKey): Promise<TokenHolder[]> {
-  if (!HELIUS_KEY) throw new Error("HELIUS_API_KEY required for holder snapshots");
-
-  let allHolders: any[] = [];
-  let cursor: string | null = null;
+async function getTokenHoldersHelius(mint: string): Promise<{ owner: string; amount: string }[]> {
+  if (!HELIUS_KEY) return [];
   const url = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`;
   const MAX_RETRIES = 5;
+  let allAccounts: { owner: string; amount: string }[] = [];
+  let cursor: string | null = null;
 
   do {
     let data: any;
     for (let attempt = 0; ; attempt++) {
-      const heliusRes = await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -281,27 +280,74 @@ async function getTokenHolders(mint: string, excludeOwner?: PublicKey): Promise<
           params: { mint, limit: 1000, cursor, displayOptions: { showZeroBalance: false } },
         }),
       });
-      const rateLimited = heliusRes.status === 429;
-      data = rateLimited ? null : await heliusRes.json().catch(() => null);
+      const rateLimited = res.status === 429;
+      data = rateLimited ? null : await res.json().catch(() => null);
       const errMsg: string | undefined = data?.error?.message;
       const transient = rateLimited || (errMsg && /rate limit|429|too many/i.test(errMsg));
-
-      if (data && !data.error) break; // success
+      if (data && !data.error) break;
       if (transient && attempt < MAX_RETRIES) {
-        await sleep(500 * 2 ** attempt); // 0.5s, 1s, 2s, 4s, 8s
+        await sleep(500 * 2 ** attempt);
         continue;
       }
       throw new Error(`Helius error: ${errMsg ?? (rateLimited ? "rate limited" : "request failed")}`);
     }
-    const items: any[] = data.result?.token_accounts || [];
-    allHolders.push(...items);
+    allAccounts.push(...(data.result?.token_accounts || []));
     cursor = data.result?.cursor;
   } while (cursor);
+
+  return allAccounts;
+}
+
+async function getTokenHoldersFallback(mint: string): Promise<{ owner: string; amount: string }[]> {
+  // Standard Solana RPC: getTokenLargestAccounts + getMultipleAccounts
+  const rpc = connection;
+  const largest = await rpc.getTokenLargestAccounts(new PublicKey(mint));
+  if (!largest?.value?.length) return [];
+
+  const accountAddresses = largest.value.map((a) => a.address.toBase58());
+  const accountInfos = await rpc.getMultipleAccountsInfo(accountAddresses.map((a) => new PublicKey(a)));
+
+  const accounts: { owner: string; amount: string }[] = [];
+  for (let i = 0; i < largest.value.length; i++) {
+    const info = accountInfos[i];
+    if (!info) continue;
+    // Parse the account data to find owner and amount
+    try {
+      // The token account data layout: 32 bytes mint + 32 bytes owner + 8 bytes amount (little-endian u64)
+      const data = info.data;
+      if (data.length < 72) continue;
+      const ownerBytes = data.subarray(32, 64);
+      const amountBytes = data.subarray(64, 72);
+      const owner = new PublicKey(ownerBytes).toBase58();
+      // Read u64 little-endian
+      let amount = 0n;
+      for (let j = 0; j < 8; j++) {
+        amount |= BigInt(amountBytes[j]) << BigInt(j * 8);
+      }
+      accounts.push({ owner, amount: amount.toString() });
+    } catch {
+      continue;
+    }
+  }
+  return accounts;
+}
+
+async function getTokenHolders(mint: string, excludeOwner?: PublicKey): Promise<TokenHolder[]> {
+  // Prefer Helius for reliable pagination; fall back to standard Solana RPC.
+  let rawAccounts: { owner: string; amount: string }[] = [];
+  try {
+    rawAccounts = await getTokenHoldersHelius(mint);
+  } catch {
+    // Helius unavailable or rate-limited — fall back to public RPC
+  }
+  if (!rawAccounts.length) {
+    rawAccounts = await getTokenHoldersFallback(mint);
+  }
 
   // Only distribute to real wallets. Off-curve owners are pools / program vaults / bonding-curve
   // accounts — they throw TokenOwnerOffCurveError on ATA derivation and shouldn't be rewarded anyway.
   const excluded = excludeOwner?.toBase58();
-  const eligible = allHolders.flatMap((h) => {
+  const eligible = rawAccounts.flatMap((h) => {
     const balanceRaw = parseRawAmount(h.amount);
     if (balanceRaw <= 0n || h.owner === "11111111111111111111111111111111" || h.owner === excluded) return [];
     try {

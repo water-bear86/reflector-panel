@@ -9,7 +9,11 @@ import { runPipeline } from "../../../lib/pipelineExecutor";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const auth = req.headers.authorization;
-  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET) {
+    console.error("CRON_SECRET env var not set — cron runs will be silently rejected");
+    return res.status(200).json({ ok: true, authorized: false, ran: false, reason: "CRON_SECRET not configured" });
+  }
+  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(200).json({ ok: true, authorized: false, ran: false });
   }
 
@@ -30,26 +34,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       continue;
     }
 
-    const result = await runPipeline(record);
-    console.log("pipeline_run_result", JSON.stringify({
-      id: record.id,
-      wallet: record.sourceWallet,
-      ok: result.ok,
-      summary: result.summary,
-      error: result.error,
-      results: result.results,
-    }));
-    await recordRun(record.id, {
-      status: result.ok ? "success" : "error",
-      // Prefer the pipeline's own reason (e.g. "below fee reserve", "no token account") over a bare
-      // rule count, so a run that swapped nothing records WHY instead of a misleading "0 rules".
-      summary: result.ok
-        ? result.summary ?? `${result.results.length} rules executed`
-        : result.error || "unknown error",
-      results: result.results,
-    });
-
-    summary.push({ id: record.id, ran: true, status: result.ok ? "success" : "error" });
+    try {
+      const result = await runPipeline(record);
+      console.log("pipeline_run_result", JSON.stringify({
+        id: record.id,
+        wallet: record.sourceWallet,
+        ok: result.ok,
+        summary: result.summary,
+        error: result.error,
+        results: result.results,
+      }));
+      await recordRun(record.id, {
+        status: result.ok ? "success" : "error",
+        summary: result.ok
+          ? result.summary ?? `${result.results.length} rules executed`
+          : result.error || "unknown error",
+        results: result.results,
+      });
+      summary.push({ id: record.id, ran: true, status: result.ok ? "success" : "error" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`pipeline_run_crash ${record.id}: ${msg}`);
+      await recordRun(record.id, { status: "error", summary: `crash: ${msg}` });
+      summary.push({ id: record.id, ran: true, status: "error" });
+    }
   }
 
   return res.json({ ok: true, checked: pipelines.length, summary });

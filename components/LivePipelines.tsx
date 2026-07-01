@@ -12,6 +12,7 @@ interface PublicPipeline {
   rules: PublicRule[];
   intervalMinutes: number;
   lastRunStatus: string | null;
+  lastRunSummary: string | null;
   lastRunAt: string | null;
   createdAt: string;
 }
@@ -44,6 +45,7 @@ function fmtInterval(min: number): string {
 
 function PipeCard({ p }: { p: PublicPipeline }) {
   const ok = p.lastRunStatus === "success";
+  const err = p.lastRunStatus === "error";
   const pending = !p.lastRunStatus;
   return (
     <div className="shrink-0 rounded-xl border border-cyan-400/20 bg-surface-800/60 backdrop-blur p-3 w-full">
@@ -88,6 +90,12 @@ function PipeCard({ p }: { p: PublicPipeline }) {
         ))}
         <span className="ml-auto text-[10px] text-slate-500">{timeAgo(p.lastRunAt)}</span>
       </div>
+
+      {err && p.lastRunSummary && (
+        <div className="mt-2 px-2 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-300 font-mono truncate" title={p.lastRunSummary}>
+          {p.lastRunSummary.length > 60 ? p.lastRunSummary.slice(0, 60) + "…" : p.lastRunSummary}
+        </div>
+      )}
     </div>
   );
 }
