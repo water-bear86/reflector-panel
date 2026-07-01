@@ -10,7 +10,7 @@ import { runPipeline } from "../../../lib/pipelineExecutor";
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const auth = req.headers.authorization;
   if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ ok: false, error: "unauthorized" });
+    return res.status(200).json({ ok: true, authorized: false, ran: false });
   }
 
   const now = Date.now();
