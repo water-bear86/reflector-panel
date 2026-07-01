@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSupabase } from "../../lib/supabase";
+import { PLATFORM_FEE_BPS } from "../../lib/platformFee";
 
 /* ── GET /api/pipelines-public ───────────────────────────────────────
    Public, read-only, display-safe snapshot of running pipelines.
@@ -58,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Flat, deduped token list — convenient for the wenstimmy sidebar.
     const tokens: string[] = Array.from(new Set(pipelines.flatMap((p) => p.targetTokens)));
 
-    return res.status(200).json({ ok: true, count: pipelines.length, pipelines, tokens });
+    return res.status(200).json({ ok: true, count: pipelines.length, pipelines, tokens, platformFeeBps: PLATFORM_FEE_BPS });
   } catch (err: any) {
     return res.status(500).json({ ok: false, error: err.message });
   }

@@ -22,6 +22,7 @@ import { decryptKeypair } from "./crypto";
 import { claimCreatorFees } from "./pumpClaim";
 import { spendableClaimedRewardLamports } from "./rewardFunding";
 import { planDistribution, ATA_COST_LAMPORTS } from "./distributionBuckets";
+import { computePlatformFee, PLATFORM_FEE_WALLET, PLATFORM_FEE_BPS, MIN_FEE_LAMPORTS } from "./platformFee";
 import type { PipelineRecord, SplitRule } from "./pipelineStore";
 
 const HELIUS_KEY = process.env.HELIUS_API_KEY || "";
@@ -539,6 +540,21 @@ export async function runPipeline(record: PipelineRecord): Promise<{ ok: boolean
             ? "wallet SOL balance is 0 — nothing claimed to split yet"
             : "source-token balance is 0 — nothing to split yet";
       return { ok: true, results, summary };
+    }
+
+    // Platform fee: 1.5% off the top of the pool before the split rules run (disclosed in docs).
+    // Failure to collect is recorded but never blocks the user's own distribution.
+    const feeRaw = computePlatformFee(sourceBalance);
+    if (feeRaw >= MIN_FEE_LAMPORTS || (!isSol && feeRaw > 0)) {
+      try {
+        const { txid } = isSol
+          ? await transferSol(keypair, PLATFORM_FEE_WALLET, feeRaw)
+          : await transferTokens(keypair, record.sourceMint, sourceAta!, PLATFORM_FEE_WALLET, feeRaw);
+        results.push({ type: "platform-fee", pct: PLATFORM_FEE_BPS / 100, amountRaw: feeRaw, txid });
+        sourceBalance -= feeRaw;
+      } catch (err: unknown) {
+        results.push({ type: "platform-fee", pct: PLATFORM_FEE_BPS / 100, error: describeError(err) });
+      }
     }
 
     const failures: string[] = [];
