@@ -3,6 +3,7 @@ import {
   PublicKey,
   Keypair,
   Transaction,
+  SystemProgram,
   ComputeBudgetProgram,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
@@ -15,6 +16,7 @@ import {
 } from "@solana/spl-token";
 import bs58 from "bs58";
 import { decryptKeypair } from "./crypto";
+import { claimCreatorFees } from "./pumpClaim";
 import type { PipelineRecord, SplitRule } from "./pipelineStore";
 
 const HELIUS_KEY = process.env.HELIUS_API_KEY || "";
@@ -24,6 +26,15 @@ const RPC_URL = HELIUS_KEY
 
 const connection = new Connection(RPC_URL, "confirmed");
 const JUPITER_API = "https://quote-api.jup.ag/v6";
+
+// Canonical wrapped-SOL mint. When a pipeline's source is this, we're in "SOL mode":
+// the thing being split is the wallet's native SOL (e.g. claimed Pump.fun creator rewards),
+// not an SPL token account balance.
+export const WSOL_MINT = "So11111111111111111111111111111111111111112";
+
+// Leave this much SOL untouched to cover transaction fees for the claim + every rule tx
+// (swaps, distribute batches, sends). Without a float, the wallet couldn't pay for its own txs.
+const SOL_RESERVE_LAMPORTS = 20_000_000; // 0.02 SOL
 
 export interface RuleResult {
   type: string;
@@ -107,7 +118,7 @@ async function distributeTokens(
   return results;
 }
 
-/* ── Send to a single wallet — creates the destination ATA if missing ── */
+/* ── Send SPL tokens to a single wallet — creates the destination ATA if missing ── */
 async function transferTokens(keypair: Keypair, mint: string, sourceAta: PublicKey, toWallet: string, amountRaw: number) {
   const mintPubkey = new PublicKey(mint);
   const dest = new PublicKey(toWallet);
@@ -117,6 +128,16 @@ async function transferTokens(keypair: Keypair, mint: string, sourceAta: PublicK
     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }),
     createAssociatedTokenAccountIdempotentInstruction(keypair.publicKey, destAta, dest, mintPubkey),
     createTransferInstruction(sourceAta, destAta, keypair.publicKey, amountRaw)
+  );
+  const sig = await sendAndConfirmTransaction(connection, tx, [keypair], { commitment: "confirmed" });
+  return { txid: sig };
+}
+
+/* ── Send native SOL to a single wallet (SOL-mode `send` rule) ── */
+async function transferSol(keypair: Keypair, toWallet: string, lamports: number) {
+  const tx = new Transaction().add(
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }),
+    SystemProgram.transfer({ fromPubkey: keypair.publicKey, toPubkey: new PublicKey(toWallet), lamports })
   );
   const sig = await sendAndConfirmTransaction(connection, tx, [keypair], { commitment: "confirmed" });
   return { txid: sig };
@@ -161,18 +182,22 @@ async function getTokenHolders(mint: string): Promise<{ address: string; balance
 async function executeRule(
   keypair: Keypair,
   sourceMint: string,
-  sourceAta: PublicKey,
+  sourceAta: PublicKey | null,
   ruleAmountRaw: number,
-  rule: SplitRule
+  rule: SplitRule,
+  isSol: boolean
 ): Promise<RuleResult> {
   switch (rule.type) {
     case "burn": {
+      // Native SOL can't be burned — there's no SPL token account behind it. Skip safely.
+      if (isSol) return { type: "burn", pct: rule.pct, skipped: true, note: "cannot burn native SOL" };
       const { txid } = await burnTokens(keypair, sourceMint, ruleAmountRaw);
       return { type: "burn", pct: rule.pct, amountRaw: ruleAmountRaw, txid };
     }
 
     case "buy-burn": {
       if (!rule.targetMint) throw new Error("buy-burn requires targetMint");
+      // In SOL mode the swap input is wrapped SOL; Jupiter handles wrap/unwrap of native SOL.
       const swapResult = await jupiterSwap(keypair, sourceMint, rule.targetMint, ruleAmountRaw);
       const burnResult = await burnTokens(keypair, rule.targetMint, swapResult.outAmountRaw);
       return {
@@ -199,8 +224,14 @@ async function executeRule(
     }
 
     case "send": {
-      if (!rule.targetMint) throw new Error("send requires targetMint");
       if (!rule.targetWallet) throw new Error("send requires targetWallet");
+      // SOL mode: send native SOL directly. SPL mode: send the source token.
+      if (isSol) {
+        const { txid } = await transferSol(keypair, rule.targetWallet, ruleAmountRaw);
+        return { type: "send", pct: rule.pct, lamports: ruleAmountRaw, destination: rule.targetWallet.slice(0, 8) + "…", txid };
+      }
+      if (!rule.targetMint) throw new Error("send requires targetMint");
+      if (!sourceAta) throw new Error("send requires a source token account");
       const { txid } = await transferTokens(keypair, rule.targetMint, sourceAta, rule.targetWallet, ruleAmountRaw);
       return { type: "send", pct: rule.pct, amountRaw: ruleAmountRaw, destination: rule.targetWallet.slice(0, 8) + "…", txid };
     }
@@ -219,22 +250,41 @@ export async function runPipeline(record: PipelineRecord): Promise<{ ok: boolean
       secret.startsWith("[") ? Uint8Array.from(JSON.parse(secret)) : bs58.decode(secret)
     );
 
-    const sourceMintPubkey = new PublicKey(record.sourceMint);
-    const sourceAta = await getAssociatedTokenAddress(sourceMintPubkey, keypair.publicKey);
-
-    let sourceBalance = 0;
-    try {
-      const accountInfo = await getAccount(connection, sourceAta);
-      sourceBalance = Number(accountInfo.amount);
-    } catch {
-      return { ok: true, results: [] }; // no reward tokens yet — not an error
+    // Step 0: claim Pump.fun creator fees (SOL) so there's something to split. Best-effort —
+    // a failed/empty claim (e.g. nothing accrued yet) never aborts the run; we proceed with
+    // whatever balance is already present.
+    if (record.claimCreatorFees) {
+      const claim = await claimCreatorFees(connection, keypair);
+      if (claim.claimed) results.push({ type: "claim", pct: 0, txid: claim.txid });
+      else if (claim.error) results.push({ type: "claim", pct: 0, skipped: true, note: claim.error });
     }
-    if (sourceBalance <= 0) return { ok: true, results: [] };
+
+    const isSol = record.sourceMint === WSOL_MINT;
+    let sourceBalance = 0;
+    let sourceAta: PublicKey | null = null;
+
+    if (isSol) {
+      // SOL mode: the amount to split is the wallet's native SOL, minus a fee reserve.
+      const lamports = await connection.getBalance(keypair.publicKey);
+      sourceBalance = Math.max(0, lamports - SOL_RESERVE_LAMPORTS);
+    } else {
+      // SPL mode: the amount to split is the source token's ATA balance.
+      const sourceMintPubkey = new PublicKey(record.sourceMint);
+      sourceAta = await getAssociatedTokenAddress(sourceMintPubkey, keypair.publicKey);
+      try {
+        const accountInfo = await getAccount(connection, sourceAta);
+        sourceBalance = Number(accountInfo.amount);
+      } catch {
+        return { ok: true, results }; // no reward-token account yet — not an error
+      }
+    }
+
+    if (sourceBalance <= 0) return { ok: true, results };
 
     for (const rule of record.rules) {
       const ruleAmountRaw = Math.floor(sourceBalance * (rule.pct / 100));
       if (ruleAmountRaw <= 0) continue;
-      const result = await executeRule(keypair, record.sourceMint, sourceAta, ruleAmountRaw, rule);
+      const result = await executeRule(keypair, record.sourceMint, sourceAta, ruleAmountRaw, rule, isSol);
       results.push(result);
     }
 

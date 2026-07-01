@@ -21,6 +21,7 @@ export interface PipelineRecord {
   rules: SplitRule[];
   intervalMinutes: number;
   enabled: boolean;
+  claimCreatorFees: boolean;
   encryptedKeypair: EncryptedKeypair;
   lastRunAt: string | null;
   lastRunStatus: "success" | "error" | null;
@@ -40,6 +41,7 @@ interface PipelineRow {
   rules: SplitRule[];
   interval_minutes: number;
   enabled: boolean;
+  claim_creator_fees: boolean;
   encrypted_keypair: EncryptedKeypair;
   last_run_at: string | null;
   last_run_status: "success" | "error" | null;
@@ -58,6 +60,7 @@ function fromRow(row: PipelineRow): PipelineRecord {
     rules: row.rules,
     intervalMinutes: row.interval_minutes,
     enabled: row.enabled,
+    claimCreatorFees: row.claim_creator_fees,
     encryptedKeypair: row.encrypted_keypair,
     lastRunAt: row.last_run_at,
     lastRunStatus: row.last_run_status,
@@ -72,6 +75,7 @@ export async function createPipeline(input: {
   sourceWallet: string;
   rules: SplitRule[];
   intervalMinutes: number;
+  claimCreatorFees: boolean;
   encryptedKeypair: EncryptedKeypair;
 }): Promise<PipelineRecord> {
   const { data, error } = await getSupabase()
@@ -84,6 +88,7 @@ export async function createPipeline(input: {
       rules: input.rules,
       interval_minutes: input.intervalMinutes,
       enabled: true,
+      claim_creator_fees: input.claimCreatorFees,
       encrypted_keypair: input.encryptedKeypair,
     })
     .select()

@@ -33,8 +33,8 @@ const ACTION_LABEL: Record<RuleType, string> = {
 const STEP_HUD: Record<Step, HudInfo> = {
   source: {
     crumb: "Reward Source",
-    title: "SPL Mint Address",
-    body: "Identifies the specific token type for rewards. Ensure it matches the token you wish to manage. This is often found in your project documentation or blockchain explorer.",
+    title: "Where Rewards Come From",
+    body: "For a Pump.fun coin, leave auto-claim on — rewards arrive as SOL and the pipeline claims them for you. Turn it off only to run rules on an SPL token this wallet already holds.",
   },
   split: {
     crumb: "Split Rules",
@@ -96,6 +96,12 @@ function ruleHud(rule: SplitRule, field: "type" | "pct" | "target", index: numbe
 }
 
 const FIELD_HUD: Record<string, HudInfo> = {
+  "source.claim": {
+    crumb: "Reward Source → Creator Rewards",
+    title: "Auto-Claim Creator Rewards",
+    body: "Pump.fun creator rewards accrue on the protocol side and are paid in SOL — they don't land in your wallet until claimed. With this on, the pipeline claims them every cycle before running your split rules, so there's always something to work with.",
+    example: "Off: use an SPL token this wallet already holds as the source instead.",
+  },
   "source.wallet": {
     crumb: "Reward Source → Creator Wallet",
     title: "Creator Wallet Address",
@@ -176,6 +182,7 @@ export default function Home() {
   const [manualOpen, setManualOpen] = useState<Set<Step>>(new Set());
   const [hud, setHud] = useState<HudInfo>(STEP_HUD.source);
 
+  const [claimCreatorFees, setClaimCreatorFees] = useState(true);
   const [sourceMint, setSourceMint] = useState("");
   const [sourceWallet, setSourceWallet] = useState("");
   const [creatorKeypair, setCreatorKeypair] = useState("");
@@ -189,7 +196,7 @@ export default function Home() {
   ]);
 
   const totalPct = useMemo(() => rules.reduce((s, r) => s + r.pct, 0), [rules]);
-  const addRule = () => setRules([...rules, { id: String(Date.now()), type: "burn", pct: 0, targetMint: "", targetWallet: "", holderMint: "" }]);
+  const addRule = () => setRules([...rules, { id: String(Date.now()), type: claimCreatorFees ? "buy-burn" : "burn", pct: 0, targetMint: "", targetWallet: "", holderMint: "" }]);
   const removeRule = (id: string) => setRules(rules.filter((r) => r.id !== id));
   const updateRule = (id: string, p: Partial<SplitRule>) => setRules(rules.map((r) => (r.id === id ? { ...r, ...p } : r)));
 
@@ -221,6 +228,7 @@ export default function Home() {
         body: JSON.stringify({
           sourceMint: sourceMint.trim(),
           sourceWallet: wallet,
+          claimCreatorFees,
           rules: rules.filter(r => r.pct > 0).map(r => ({
             type: r.type, pct: r.pct,
             targetMint: r.targetMint.trim(),
@@ -248,6 +256,7 @@ export default function Home() {
   const resetAll = () => {
     goToStep("source");
     setManualOpen(new Set());
+    setClaimCreatorFees(true);
     setSourceMint("");
     setSourceWallet("");
     setCreatorKeypair("");
@@ -326,16 +335,44 @@ export default function Home() {
               </button>
               {isOpen("source") && (
                 <div className="space-y-4 mt-5">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Reward Token Mint</label>
-                    <input
-                      className="glass-input font-mono text-sm"
-                      value={sourceMint}
-                      onFocus={() => setHud(STEP_HUD.source)}
-                      onChange={(e) => setSourceMint(e.target.value)}
-                      placeholder="SPL mint — e.g. your Pump.fun creator rewards token"
-                    />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClaimCreatorFees((v) => {
+                        const next = !v;
+                        // Turning claim on → SOL source, where a plain "burn" rule is meaningless.
+                        if (next) setRules((rs) => rs.map((r) => (r.type === "burn" ? { ...r, type: "buy-burn" as RuleType } : r)));
+                        return next;
+                      });
+                    }}
+                    onFocus={() => setHud(FIELD_HUD["source.claim"])}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${claimCreatorFees ? "bg-fuchsia-500/10 border-fuchsia-400/40" : "bg-surface-800/60 border-slate-700/40"}`}
+                  >
+                    <span className={`w-9 h-5 rounded-full shrink-0 flex items-center transition-all ${claimCreatorFees ? "bg-gradient-to-r from-fuchsia-500 to-cyan-400" : "bg-surface-700"}`}>
+                      <span className={`w-4 h-4 rounded-full bg-white shadow transition-all ${claimCreatorFees ? "translate-x-4" : "translate-x-0.5"}`} />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-medium text-white">Auto-claim Pump.fun creator rewards</span>
+                      <span className="block text-xs text-slate-400">Rewards are paid in SOL. The pipeline claims them each cycle, then runs your split rules on the claimed SOL.</span>
+                    </span>
+                  </button>
+                  {!claimCreatorFees && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1.5">Reward Token Mint</label>
+                      <input
+                        className="glass-input font-mono text-sm"
+                        value={sourceMint}
+                        onFocus={() => setHud(STEP_HUD.source)}
+                        onChange={(e) => setSourceMint(e.target.value)}
+                        placeholder="SPL mint — the token this wallet already receives"
+                      />
+                    </div>
+                  )}
+                  {claimCreatorFees && (
+                    <div className="p-3 rounded-xl bg-surface-800/60 border border-slate-700/30 text-xs text-slate-400">
+                      Source: <span className="text-cyan-300 font-mono">claimed creator rewards (SOL)</span> — no reward-token mint needed.
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1.5">Creator Wallet Address</label>
                     <input
@@ -361,7 +398,7 @@ export default function Home() {
                     />
                     <p className="text-[10px] text-slate-500 mt-1">Encrypted at rest, decrypted only in memory when the pipeline runs. Use a dedicated throwaway wallet — never your main one.</p>
                   </div>
-                  <button className="btn-primary w-full" onClick={() => goToStep("split")} disabled={!sourceMint.trim()}>Continue →</button>
+                  <button className="btn-primary w-full" onClick={() => goToStep("split")} disabled={!claimCreatorFees && !sourceMint.trim()}>Continue →</button>
                 </div>
               )}
             </div>
@@ -403,7 +440,7 @@ export default function Home() {
                           onChange={(e) => updateRule(rule.id, { type: e.target.value as RuleType })}
                         >
                           <option value="buy-burn">🔄 Swap → Burn</option>
-                          <option value="burn">🔥 Burn tokens</option>
+                          {!claimCreatorFees && <option value="burn">🔥 Burn tokens</option>}
                           <option value="distribute">📤 Distribute to holders</option>
                           <option value="send">💸 Send to wallet</option>
                         </select>
