@@ -82,7 +82,7 @@ function ruleHud(rule: SplitRule, field: "type" | "pct" | "target", index: numbe
     return {
       crumb,
       title: "Snapshot Holders Of",
-      body: "Rewards go to the top holders of this token, split proportionally by balance. The number of recipients scales with the size of each drop — roughly one holder per 0.02 SOL of claimed fees, up to 100 — so small drops stay efficient and big drops reach wide.",
+      body: "Rewards go to the top holders of this token, split proportionally by balance. The number of recipients scales with the size of each drop — roughly one holder per 0.015 SOL of claimed fees, topping out at 200 holders on 3+ SOL drops — so small drops stay efficient and big drops reach wide.",
       example: "e.g. your project's main token mint.",
     };
   }
