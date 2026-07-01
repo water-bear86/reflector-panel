@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useSiws } from "../hooks/useSiws";
+import { SCHEDULE_PRESETS, formatInterval } from "../lib/schedule";
 
 type Step = "source" | "split" | "schedule" | "done";
 type RuleType = "burn" | "buy-burn" | "distribute" | "send";
@@ -103,13 +104,13 @@ const FIELD_HUD: Record<string, HudInfo> = {
   "source.keypair": {
     crumb: "Reward Source → Creator Keypair",
     title: "Auto-Execution Keypair",
-    body: "Used only to sign scheduled pipeline transactions. Stays local — never sent to any server in production.",
+    body: "Encrypted (AES-256-GCM) before it's stored, decrypted only in memory at execution time. Use a dedicated throwaway wallet funded only with what this pipeline needs to move — never your main wallet.",
   },
   "schedule.cron": {
-    crumb: "Schedule → Cron Expression",
+    crumb: "Schedule → Interval",
     title: "Execution Schedule",
     body: "How often the pipeline checks for new rewards and executes your split rules.",
-    example: "Presets range from every 5 minutes to daily. Custom cron expressions are also accepted.",
+    example: "Presets range from every 5 minutes to daily.",
   },
 };
 
@@ -178,7 +179,7 @@ export default function Home() {
   const [sourceMint, setSourceMint] = useState("");
   const [sourceWallet, setSourceWallet] = useState("");
   const [creatorKeypair, setCreatorKeypair] = useState("");
-  const [cronExpr, setCronExpr] = useState("every 5m");
+  const [intervalMinutes, setIntervalMinutes] = useState(60);
   const [deploying, setDeploying] = useState(false);
   const [deployResult, setDeployResult] = useState<any>(null);
 
@@ -208,11 +209,9 @@ export default function Home() {
     setHud(STEP_HUD[s]);
   };
 
-  /* ── Deploy: one atomic call. On localhost, files auto-saved. On Vercel, keypair downloads. ── */
+  /* ── Deploy: one call. Stored server-side (encrypted), runs on schedule forever — nothing else to do. ── */
   const deploy = async () => {
     const wallet = sourceWallet.trim() || publicKey?.toBase58() || "";
-    const isLocal = typeof window !== "undefined" &&
-      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
     setDeploying(true);
 
     try {
@@ -222,28 +221,18 @@ export default function Home() {
         body: JSON.stringify({
           sourceMint: sourceMint.trim(),
           sourceWallet: wallet,
-          network: "mainnet",
           rules: rules.filter(r => r.pct > 0).map(r => ({
             type: r.type, pct: r.pct,
             targetMint: r.targetMint.trim(),
             targetWallet: r.targetWallet.trim(),
             holderMint: r.holderMint.trim(),
           })),
-          cron: cronExpr,
+          cron: intervalMinutes,
           keypair: creatorKeypair.trim() || undefined,
+          ownerAddress: signedIn ? publicKey?.toBase58() : undefined,
         }),
       });
       const data = await res.json();
-
-      // Remote: auto-download keypair if server didn't save it
-      if (!isLocal && creatorKeypair.trim() && !data.files?.includes("creator-keypair.json")) {
-        const blob = new Blob([creatorKeypair.trim()], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = "creator-keypair.json"; a.click();
-        URL.revokeObjectURL(url);
-        data.downloaded = true;
-      }
 
       setSourceWallet(wallet);
       setDeployResult(data);
@@ -266,7 +255,7 @@ export default function Home() {
       { id: "1", type: "buy-burn", pct: 50, targetMint: "", targetWallet: "", holderMint: "" },
       { id: "2", type: "distribute", pct: 50, targetMint: "", targetWallet: "", holderMint: "" },
     ]);
-    setCronExpr("every 5m");
+    setIntervalMinutes(60);
     setDeployResult(null);
   };
 
@@ -370,7 +359,7 @@ export default function Home() {
                       onChange={(e) => setCreatorKeypair(e.target.value)}
                       placeholder="Paste private key (base58) for auto-execution"
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">Stays local. Never sent to any server in production.</p>
+                    <p className="text-[10px] text-slate-500 mt-1">Encrypted at rest, decrypted only in memory when the pipeline runs. Use a dedicated throwaway wallet — never your main one.</p>
                   </div>
                   <button className="btn-primary w-full" onClick={() => goToStep("split")} disabled={!sourceMint.trim()}>Continue →</button>
                 </div>
@@ -494,24 +483,17 @@ export default function Home() {
               {isOpen("schedule") && (
                 <div className="space-y-4 mt-5">
                   <div className="grid grid-cols-4 gap-2">
-                    {["every 5m", "every 15m", "every 30m", "every 1h", "every 6h", "every 12h", "0 */6 * * *", "0 0 * * *"].map((c) => (
+                    {SCHEDULE_PRESETS.map((p) => (
                       <button
-                        key={c}
-                        onClick={() => setCronExpr(c)}
+                        key={p.minutes}
+                        onClick={() => setIntervalMinutes(p.minutes)}
                         onFocus={() => setHud(FIELD_HUD["schedule.cron"])}
-                        className={`px-3 py-2 rounded-lg text-xs font-mono transition-all ${cronExpr === c ? "bg-fuchsia-500/20 border border-fuchsia-400/40 text-fuchsia-300" : "bg-surface-800 border border-slate-700/30 text-slate-300 hover:border-slate-500/50"}`}
+                        className={`px-3 py-2 rounded-lg text-xs font-mono transition-all ${intervalMinutes === p.minutes ? "bg-fuchsia-500/20 border border-fuchsia-400/40 text-fuchsia-300" : "bg-surface-800 border border-slate-700/30 text-slate-300 hover:border-slate-500/50"}`}
                       >
-                        {c}
+                        {p.label}
                       </button>
                     ))}
                   </div>
-                  <input
-                    className="glass-input font-mono text-sm"
-                    value={cronExpr}
-                    onFocus={() => setHud(FIELD_HUD["schedule.cron"])}
-                    onChange={(e) => setCronExpr(e.target.value)}
-                    placeholder="Or custom cron expression…"
-                  />
                   <button className="btn-secondary w-full" onClick={() => goToStep("split")}>← Back</button>
                 </div>
               )}
@@ -525,7 +507,7 @@ export default function Home() {
                   {deployResult?.ok ? "Pipeline Live" : "Deploy Failed"}
                 </h2>
                 <p className="text-slate-300 text-sm">
-                  <code className="text-cyan-300">{sourceMint.slice(0, 10)}…</code> → {rules.filter(r => r.pct > 0).length} rules → {cronExpr}
+                  <code className="text-cyan-300">{sourceMint.slice(0, 10)}…</code> → {rules.filter(r => r.pct > 0).length} rules → every {formatInterval(intervalMinutes)}
                 </p>
 
                 {deployResult?.message && (
@@ -536,26 +518,10 @@ export default function Home() {
 
                 {deployResult?.ok && (
                   <div className="p-4 rounded-xl bg-surface-800/60 border border-slate-700/30 text-xs text-slate-300 text-left space-y-2">
-                    <div className="flex justify-between">
-                      <span>Keypair</span>
-                      <span className={deployResult.files?.includes("creator-keypair.json") ? "text-emerald-300" : creatorKeypair && deployResult.downloaded ? "text-amber-300" : creatorKeypair ? "text-amber-300" : "text-rose-300"}>
-                        {deployResult.files?.includes("creator-keypair.json") ? "✓ Saved to ~/.hermes/scripts/ — ready to execute" :
-                         deployResult.downloaded ? "✓ Downloaded — move to ~/.hermes/scripts/" :
-                         creatorKeypair ? "✓ Provided" : "✗ Missing — paste above"}
-                      </span>
-                    </div>
+                    <div className="flex justify-between"><span>Pipeline ID</span><span className="text-white font-mono">{deployResult.id?.slice(0, 8)}…</span></div>
                     <div className="flex justify-between"><span>Rules</span><span className="text-white">{rules.filter(r => r.pct > 0).length}</span></div>
-                    <div className="flex justify-between"><span>Schedule</span><span className="text-cyan-300 font-mono">{cronExpr}</span></div>
-                    {deployResult.files?.includes("creator-keypair.json") && (
-                      <p className="text-[10px] text-emerald-400 pt-1">Zero helpers. Pipeline executes on next cron tick.</p>
-                    )}
-                    {!deployResult.files?.includes("creator-keypair.json") && (
-                      <p className="text-[10px] text-slate-500 pt-2">
-                        {deployResult.downloaded
-                          ? "Move downloaded file to ~/.hermes/scripts/creator-keypair.json — the cron poller auto-detects it."
-                          : "Run locally (npm run dev) for zero-step deployment — files auto-saved."}
-                      </p>
-                    )}
+                    <div className="flex justify-between"><span>Schedule</span><span className="text-cyan-300 font-mono">every {formatInterval(intervalMinutes)}</span></div>
+                    <p className="text-[10px] text-emerald-400 pt-1">Nothing else to do — it runs automatically from here on.</p>
                   </div>
                 )}
 

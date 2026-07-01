@@ -1,81 +1,42 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { writeFileSync, mkdirSync } from "fs";
-import { join } from "path";
-import os from "os";
+import { encryptKeypair } from "../../lib/crypto";
+import { cronPresetToIntervalMinutes, formatInterval } from "../../lib/schedule";
+import { createPipeline } from "../../lib/pipelineStore";
+import type { SplitRule } from "../../lib/pipelineStore";
 
 /* ── POST /api/deploy ────────────────────────────────────────────────
-   Atomic deploy: saves config to cache AND keypair to file (when local).
-   One call, zero helpers. */
+   One call: encrypts the keypair, stores the pipeline in Supabase,
+   done. Nothing else for the visitor to do — Vercel Cron picks it up
+   and runs it automatically from here on. */
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  const { sourceMint, sourceWallet, network, rules, cron, keypair } = req.body;
+  const { sourceMint, sourceWallet, rules, cron, keypair, ownerAddress } = req.body;
   if (!sourceMint) return res.status(400).json({ error: "sourceMint required" });
-  if (!rules?.length) return res.status(400).json({ error: "rules required" });
+  if (!Array.isArray(rules) || !rules.length) return res.status(400).json({ error: "rules required" });
+  if (!keypair?.trim()) return res.status(400).json({ error: "keypair required — the pipeline can't execute without a signing key" });
 
-  const config = {
-    sourceMint,
-    sourceWallet: sourceWallet || "",
-    network: network || "mainnet",
-    rules,
-    cron: cron || "every 5m",
-  };
+  const intervalMinutes = cronPresetToIntervalMinutes(cron);
 
-  const isLocal = !process.env.VERCEL && !process.env.NOW_REGION;
-  const localFiles: string[] = [];
-
-  // Save config to in-memory cache
   try {
-    const baseUrl = isLocal
-      ? `http://localhost:${process.env.PORT || 3000}`
-      : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
-
-    await fetch(`${baseUrl}/api/auto-config`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(config),
+    const encryptedKeypair = encryptKeypair(keypair.trim());
+    const pipeline = await createPipeline({
+      ownerAddress: ownerAddress || null,
+      sourceMint: sourceMint.trim(),
+      sourceWallet: (sourceWallet || "").trim(),
+      rules: (rules as SplitRule[]).filter((r) => r.pct > 0),
+      intervalMinutes,
+      encryptedKeypair,
     });
-  } catch {
-    // Best-effort
+
+    return res.json({
+      ok: true,
+      id: pipeline.id,
+      intervalMinutes,
+      message: `Pipeline live — checks every ${formatInterval(intervalMinutes)}. Nothing else to do.`,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ ok: false, error: err.message });
   }
-
-  // LOCAL: save config + keypair to ~/.hermes/scripts/
-  if (isLocal) {
-    const scriptsDir = join(os.homedir(), ".hermes", "scripts");
-    try {
-      mkdirSync(scriptsDir, { recursive: true });
-
-      // Config file
-      writeFileSync(
-        join(scriptsDir, "reflector-jobs.json"),
-        JSON.stringify({ jobs: [config] }, null, 2)
-      );
-      localFiles.push("reflector-jobs.json");
-
-      // Keypair file
-      if (keypair?.trim()) {
-        writeFileSync(join(scriptsDir, "creator-keypair.json"), keypair.trim());
-        localFiles.push("creator-keypair.json");
-      }
-    } catch (err: any) {
-      return res.status(500).json({ ok: false, error: `Cannot write files: ${err.message}` });
-    }
-  }
-
-  // Keypair handling for remote deployments
-  const hasKeypair = !!keypair?.trim();
-
-  return res.json({
-    ok: true,
-    local: isLocal,
-    files: localFiles,
-    hasKeypair,
-    message: isLocal
-      ? `Pipeline deployed — ${localFiles.length} file${localFiles.length !== 1 ? "s" : ""} saved to ~/.hermes/scripts/
-${!hasKeypair ? "╸ Add your keypair for on-chain execution." : ""}`
-      : `Config saved. ${hasKeypair ? "Download the keypair file below." : ""}`,
-  });
 }
