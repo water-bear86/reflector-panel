@@ -59,7 +59,8 @@ async function jupiterSwap(keypair: Keypair, inputMint: string, outputMint: stri
       userPublicKey: keypair.publicKey.toBase58(),
       wrapAndUnwrapSol: true,
       dynamicComputeUnitLimit: true,
-      prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxPriorityLamports: 1_000_000, priorityLevel: "high" } },
+      // Jupiter v1 uses `maxLamports` (v6 called it `maxPriorityLamports`); the old key now 422s.
+      prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 1_000_000, priorityLevel: "high" } },
     }),
   });
   const swapData = await swapRes.json();
