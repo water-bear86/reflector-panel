@@ -411,6 +411,7 @@ export async function runPipeline(record: PipelineRecord): Promise<{ ok: boolean
       secret.startsWith("[") ? Uint8Array.from(JSON.parse(secret)) : bs58.decode(secret)
     );
 
+    const isSol = record.sourceMint === WSOL_MINT;
     let claimedLamports = 0;
 
     // Step 0: claim Pump.fun creator fees (SOL). SOL-mode pipelines are allowed to spend only
@@ -419,10 +420,12 @@ export async function runPipeline(record: PipelineRecord): Promise<{ ok: boolean
       const claim = await claimCreatorFees(connection, keypair);
       claimedLamports = claim.claimedLamports ?? 0;
       if (claim.claimed) results.push({ type: "claim", pct: 0, txid: claim.txid, claimedLamports });
-      else if (claim.error) results.push({ type: "claim", pct: 0, skipped: true, note: claim.error });
+      else if (claim.error) {
+        results.push({ type: "claim", pct: 0, skipped: true, error: claim.error });
+        if (isSol) return { ok: false, results, error: `creator fee claim failed: ${claim.error}` };
+      }
     }
 
-    const isSol = record.sourceMint === WSOL_MINT;
     let sourceBalance = 0;
     let sourceAta: PublicKey | null = null;
     let lamports = 0;

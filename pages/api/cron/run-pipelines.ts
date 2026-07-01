@@ -14,11 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const now = Date.now();
+  const force = req.query.force === "1" || req.query.force === "true";
   const pipelines = await listEnabledPipelines();
   const summary: { id: string; ran: boolean; status?: string }[] = [];
 
   for (const record of pipelines) {
-    if (!isDue(record, now)) {
+    if (!force && !isDue(record, now)) {
       summary.push({ id: record.id, ran: false });
       continue;
     }
@@ -30,6 +31,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const result = await runPipeline(record);
+    console.log("pipeline_run_result", JSON.stringify({
+      id: record.id,
+      wallet: record.sourceWallet,
+      ok: result.ok,
+      summary: result.summary,
+      error: result.error,
+      results: result.results,
+    }));
     await recordRun(record.id, {
       status: result.ok ? "success" : "error",
       // Prefer the pipeline's own reason (e.g. "below fee reserve", "no token account") over a bare
