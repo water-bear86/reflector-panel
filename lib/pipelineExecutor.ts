@@ -41,6 +41,11 @@ export const WSOL_MINT = "So11111111111111111111111111111111111111112";
 // (swaps, distribute batches, sends). Without a float, the wallet couldn't pay for its own txs.
 const SOL_RESERVE_LAMPORTS = 20_000_000; // 0.02 SOL
 
+// Distribute only to the largest N holders. Every recipient needs an ATA-create (~0.002 SOL rent)
+// + a transfer — sending to every holder of a popular token would blow the function timeout, the
+// rent/fee budget, and the RPC rate limit. The reward pool is split proportionally among the top N.
+const MAX_DISTRIBUTE_RECIPIENTS = 100;
+
 export interface RuleResult {
   type: string;
   pct: number;
@@ -305,14 +310,16 @@ async function getTokenHolders(mint: string, excludeOwner?: PublicKey): Promise<
     }
     return [{ owner: h.owner, balanceRaw }];
   });
-  const total = eligible.reduce((sum, h) => sum + h.balanceRaw, 0n);
-  return eligible
-    .map((h) => ({
-      address: h.owner,
-      balanceRaw: h.balanceRaw,
-      pct: total > 0n ? Number((h.balanceRaw * 1_000_000n) / total) / 10_000 : 0,
-    }))
-    .sort((a, b) => (a.balanceRaw === b.balanceRaw ? 0 : a.balanceRaw > b.balanceRaw ? -1 : 1));
+  // Take the largest N holders, then split the pool proportionally among just those.
+  const topHolders = eligible
+    .sort((a, b) => (a.balanceRaw === b.balanceRaw ? 0 : a.balanceRaw > b.balanceRaw ? -1 : 1))
+    .slice(0, MAX_DISTRIBUTE_RECIPIENTS);
+  const total = topHolders.reduce((sum, h) => sum + h.balanceRaw, 0n);
+  return topHolders.map((h) => ({
+    address: h.owner,
+    balanceRaw: h.balanceRaw,
+    pct: total > 0n ? Number((h.balanceRaw * 1_000_000n) / total) / 10_000 : 0,
+  }));
 }
 
 async function executeRule(
