@@ -1000,6 +1000,18 @@ export default function Home() {
             <span>Powered by Pump.fun fee sharing</span>
           </div>
         </div>
+        <div className="max-w-6xl mx-auto px-4 pb-6 text-center text-[11px] text-slate-600">
+          Wen Stimmy is a branded instance of{" "}
+          <a
+            href="https://github.com/YATSPAT/YATSPAT"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-500 hover:text-pink-300 transition-colors"
+          >
+            YATSPAT
+          </a>
+          , the whitelabel core.
+        </div>
       </footer>
     </main>
   );
