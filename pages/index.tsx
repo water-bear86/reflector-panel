@@ -565,7 +565,7 @@ export default function Home() {
           {bannerAnim ? (
             <Lottie animationData={bannerAnim} loop autoplay className="w-full h-auto block" />
           ) : (
-            <div className="w-full aspect-[1200/511] bg-surface-900" />
+            <div className="w-full aspect-[5/1] bg-surface-900" />
           )}
         </div>
         <div className="mt-7 flex items-center justify-center gap-3">
