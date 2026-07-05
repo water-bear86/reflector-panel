@@ -1,6 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import type { SplitRule } from "./pipelineStore";
 import { isHolderMode } from "./lotteryDistribution";
+import { DEFAULT_POLL_INTERVAL_MINUTES, isValidPollInterval, POLL_INTERVAL_TIERS } from "./pollIntervalTiers";
 
 /* ── Shared pipeline-input validation ────────────────────────────────
    Used by both /api/deploy (creates the pipeline) and /api/validate (dry
@@ -20,6 +21,7 @@ export interface ValidatedPipelineInput {
   mint: string;
   cleanRules: SplitRule[];
   dropThresholdLamports: number | null;
+  pollIntervalMinutes: number;
 }
 
 export type ValidationResult =
@@ -30,6 +32,7 @@ export function validatePipelineInput(body: {
   feeMint?: string;
   rules?: SplitRule[];
   dropThresholdSol?: number | string | null;
+  pollIntervalMinutes?: number | string | null;
 }): ValidationResult {
   const mint = (body.feeMint || "").trim();
   if (!mint) return { ok: false, error: "feeMint required — the token whose creator fees this pipeline collects" };
@@ -78,5 +81,17 @@ export function validatePipelineInput(body: {
     dropThresholdLamports = Math.round(parsed * 1e9);
   }
 
-  return { ok: true, value: { mint, cleanRules, dropThresholdLamports } };
+  let pollIntervalMinutes = DEFAULT_POLL_INTERVAL_MINUTES;
+  if (body.pollIntervalMinutes !== undefined && body.pollIntervalMinutes !== null && body.pollIntervalMinutes !== ("" as unknown)) {
+    const parsed = Number(body.pollIntervalMinutes);
+    if (!isValidPollInterval(parsed)) {
+      return {
+        ok: false,
+        error: `pollIntervalMinutes must be one of ${POLL_INTERVAL_TIERS.map((t) => t.minutes).join(", ")}`,
+      };
+    }
+    pollIntervalMinutes = parsed;
+  }
+
+  return { ok: true, value: { mint, cleanRules, dropThresholdLamports, pollIntervalMinutes } };
 }

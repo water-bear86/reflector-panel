@@ -38,9 +38,8 @@ export interface PipelineRecord {
   lastRunStatus: "success" | "error" | null;
   lastRunSummary: string | null;
   lastRunResults?: unknown[];
-  // Lamports collected by the fee-sharing crank on the LAST completed poll — compared against
-  // this poll's collection to adapt intervalMinutes (see lib/adaptivePolling.ts). null until
-  // the first successful poll.
+  // Lamports collected by the fee-sharing crank on the LAST completed poll — informational
+  // only (surfaced in run summaries). null until the first successful poll.
   lastClaimedLamports: number | null;
 }
 
@@ -175,10 +174,6 @@ export async function recordRun(
     summary: string;
     results?: unknown[];
     outLamports?: number;
-    // Adaptive fee-collection polling (see lib/adaptivePolling.ts) — only set on runs that
-    // completed a real poll (not on config errors or a hard collection failure), so a run
-    // that never actually polled leaves the stored cadence untouched.
-    intervalMinutes?: number;
     claimedLamports?: number;
   }
 ): Promise<void> {
@@ -197,7 +192,6 @@ export async function recordRun(
     row.total_out_lamports = prev + Math.floor(update.outLamports);
   }
 
-  if (update.intervalMinutes !== undefined) row.interval_minutes = update.intervalMinutes;
   // 0 is a meaningful poll result (fees genuinely dried up) — must persist it, not just truthy values.
   if (update.claimedLamports !== undefined) row.last_claimed_lamports = Math.floor(update.claimedLamports);
 

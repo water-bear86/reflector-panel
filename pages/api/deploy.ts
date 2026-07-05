@@ -2,7 +2,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createPipeline } from "../../lib/pipelineStore";
 import { generatePipelineWallet } from "../../lib/walletGen";
 import { validatePipelineInput } from "../../lib/validatePipelineInput";
-import { DEFAULT_POLL_INTERVAL_MINUTES } from "../../lib/adaptivePolling";
 
 /* ── POST /api/deploy ────────────────────────────────────────────────
    Fee-sharing model: the panel GENERATES a fresh operations wallet, stores
@@ -17,16 +16,11 @@ const WSOL_MINT = "So11111111111111111111111111111111111111112";
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  const { feeMint, rules, ownerAddress, dropThresholdSol } = req.body;
+  const { feeMint, rules, ownerAddress, dropThresholdSol, pollIntervalMinutes } = req.body;
 
-  const validated = validatePipelineInput({ feeMint, rules, dropThresholdSol });
+  const validated = validatePipelineInput({ feeMint, rules, dropThresholdSol, pollIntervalMinutes });
   if (!validated.ok) return res.status(400).json({ error: validated.error });
-  const { mint, cleanRules, dropThresholdLamports } = validated.value;
-
-  // Every pipeline this endpoint creates is fee-sharing (SOL-source, claims creator fees), so
-  // it starts at the adaptive poller's default cadence — see lib/adaptivePolling.ts. From here
-  // the cron speeds up or slows down the check interval based on fee-collection velocity.
-  const intervalMinutes = DEFAULT_POLL_INTERVAL_MINUTES;
+  const { mint, cleanRules, dropThresholdLamports, pollIntervalMinutes: intervalMinutes } = validated.value;
 
   try {
     const wallet = generatePipelineWallet();

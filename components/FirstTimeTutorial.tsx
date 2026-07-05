@@ -30,7 +30,12 @@ const STEPS: TourStep[] = [
   {
     selector: '[data-tour="drop-threshold"]',
     title: "Set a drop threshold",
-    body: "Fees accumulate until spendable SOL clears this amount, then a round fires. Checking itself is adaptive — every 1 to 60 minutes, speeding up while fees keep flowing in and slowing down once they dry up.",
+    body: "Fees accumulate until spendable SOL clears this amount, then a round fires.",
+  },
+  {
+    selector: '[data-tour="poll-interval"]',
+    title: "Pick a check interval",
+    body: "How often the pipeline checks for collectible fees — every 1 to 30 minutes. Checking faster costs more in real infrastructure spend, so quicker tiers carry a slightly bigger flat fee per distribute; slower tiers are cheaper.",
   },
   {
     selector: '[data-tour="validate-button"]',

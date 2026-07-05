@@ -11,7 +11,7 @@ const SECTIONS: Section[] = [
   { id: "non-custodial", title: "Non-custodial by design" },
   { id: "building", title: "Building a pipeline" },
   { id: "reach-modes", title: "Holder reach modes" },
-  { id: "threshold", title: "Drop threshold & polling" },
+  { id: "threshold", title: "Drop threshold & interval" },
   { id: "validate", title: "Validate & permanence" },
   { id: "activate", title: "Activating on Pump.fun" },
   { id: "fee", title: "Platform fee" },
@@ -141,7 +141,7 @@ export default function Docs() {
                 </p>
               </DocSection>
 
-              <DocSection id="threshold" title="Drop threshold & adaptive polling">
+              <DocSection id="threshold" title="Drop threshold & check interval">
                 <p>
                   Fees accumulate in the pipeline wallet until spendable SOL clears your{" "}
                   <strong className="text-white">drop threshold</strong> (0.5 SOL by default) — then a round fires
@@ -149,11 +149,20 @@ export default function Docs() {
                   which is never spent by your rules.
                 </p>
                 <p>
-                  Checking for collectible fees is <strong className="text-white">adaptive</strong>, not fixed:
-                  it starts at every 5 minutes, then speeds up (down to every minute) while fees keep flowing in, and
-                  slows down (up to once an hour) once they dry up — so an active token gets checked often without
-                  wasting checks on a quiet one.
+                  You also pick how often the pipeline checks for collectible fees, from{" "}
+                  <strong className="text-white">every 1 to every 30 minutes</strong>. Checking more often means
+                  catching a distribute sooner, but it also costs more in real infrastructure spend — so faster tiers
+                  carry a slightly larger flat fee, charged once per distribute (never per check, and never on a
+                  round where nothing was collected):
                 </p>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1 text-center">
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">1 min</div><div className="text-[11px] text-slate-400">0.0100 SOL</div></div>
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">2 min</div><div className="text-[11px] text-slate-400">0.0063 SOL</div></div>
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">5 min</div><div className="text-[11px] text-slate-400">0.0040 SOL</div></div>
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">10 min</div><div className="text-[11px] text-slate-400">0.0025 SOL</div></div>
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">15 min</div><div className="text-[11px] text-slate-400">0.0016 SOL</div></div>
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">30 min</div><div className="text-[11px] text-slate-400">0.0010 SOL</div></div>
+                </div>
               </DocSection>
 
               <DocSection id="validate" title="Validate & permanence">
@@ -197,7 +206,7 @@ export default function Docs() {
                   </div>
                   <div>
                     <p className="text-white font-semibold">How often does it check for fees?</p>
-                    <p>Adaptively, between once a minute and once an hour — see "Drop threshold & adaptive polling" above.</p>
+                    <p>Whatever interval you picked at creation, from once a minute to once every 30 minutes — see "Drop threshold &amp; interval" above.</p>
                   </div>
                   <div>
                     <p className="text-white font-semibold">What if I want to stop a pipeline?</p>

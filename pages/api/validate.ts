@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { validatePipelineInput } from "../../lib/validatePipelineInput";
 import { fetchTokenInfoBatch } from "../../lib/tokenMeta";
+import { feeLamportsForInterval } from "../../lib/pollIntervalTiers";
 
 /* ── POST /api/validate ──────────────────────────────────────────────
    Dry run of the exact checks /api/deploy applies (shared via
@@ -11,8 +12,8 @@ import { fetchTokenInfoBatch } from "../../lib/tokenMeta";
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
 
-  const { feeMint, rules, dropThresholdSol } = req.body;
-  const validated = validatePipelineInput({ feeMint, rules, dropThresholdSol });
+  const { feeMint, rules, dropThresholdSol, pollIntervalMinutes } = req.body;
+  const validated = validatePipelineInput({ feeMint, rules, dropThresholdSol, pollIntervalMinutes });
   if (!validated.ok) return res.status(200).json({ ok: false, error: validated.error });
 
   const { mint, cleanRules } = validated.value;
@@ -40,5 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     feeMint: mint,
     rules: cleanRules,
     dropThresholdLamports: validated.value.dropThresholdLamports,
+    pollIntervalMinutes: validated.value.pollIntervalMinutes,
+    intervalFeeLamports: feeLamportsForInterval(validated.value.pollIntervalMinutes),
   });
 }

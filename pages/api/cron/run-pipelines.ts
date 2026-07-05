@@ -52,7 +52,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           : result.error || "unknown error",
         results: result.results,
         outLamports: result.outLamports,
-        intervalMinutes: result.nextIntervalMinutes,
         claimedLamports: result.claimedLamports,
       });
       summary.push({ id: record.id, ran: true, status: result.ok ? "success" : "error" });
