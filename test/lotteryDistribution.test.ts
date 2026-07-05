@@ -57,6 +57,36 @@ test("planLotteryDistribution prioritizes existing token accounts to maximize ho
   assert.equal(plan.ataMissingCount, 0);
 });
 
+test("planLotteryDistribution does not always include every existing-ATA holder over an equal-count missing-ATA one when the cap forces scarcity", () => {
+  // 8 existing-ATA + 8 missing-ATA candidates, cap of 8 — small enough that cost-class-first
+  // ordering would previously guarantee all 8 existing-ATA holders win every single round
+  // (they're always sorted ahead of the missing-ATA group, and 8 fits the cap exactly).
+  // A big enough pool that a handful of missing-ATA picks are affordable too.
+  const candidates = [
+    ...Array.from({ length: 8 }, (_, index) => ({ address: `existing-${index}`, balanceRaw: 1n, hasTargetAta: true })),
+    ...Array.from({ length: 8 }, (_, index) => ({ address: `missing-${index}`, balanceRaw: 1n, hasTargetAta: false })),
+  ];
+
+  const recipientSets = Array.from({ length: 25 }, (_, i) =>
+    planLotteryDistribution({
+      candidates,
+      poolLamports: 20_000_000,
+      seed: `randomness-check-${i}`,
+      maxRecipients: 8,
+    })
+  ).map((plan) => plan?.recipients.map((r) => r.address).sort().join(","));
+
+  // If cost class still gated who's even considered, every one of these would be identical
+  // (all 8 existing-ATA holders, every time). Real randomness means the winning set varies.
+  const distinctSets = new Set(recipientSets);
+  assert.ok(distinctSets.size > 1, "expected the winning set to vary across seeds, not stay fixed");
+
+  // And at least one round should include a missing-ATA holder — proving cost class no longer
+  // unconditionally excludes the more expensive group whenever there's room to afford it.
+  const anyRoundIncludesMissing = recipientSets.some((set) => set?.includes("missing-"));
+  assert.ok(anyRoundIncludesMissing, "expected at least one round to include a missing-ATA holder");
+});
+
 test("planLotteryDistribution uses remaining budget for missing token accounts", () => {
   const candidates = Array.from({ length: 500 }, (_, index) => ({
     address: `holder-${index}`,

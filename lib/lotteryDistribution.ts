@@ -80,23 +80,24 @@ export function planLotteryDistribution(input: {
   const minSwapLamports = input.minSwapLamports ?? MIN_SWAP_LAMPORTS;
   if (!Number.isFinite(input.poolLamports) || input.poolLamports <= minSwapLamports) return null;
 
-  const shuffled = stableShuffle(input.candidates, input.seed).map((candidate, index) => ({
-    ...candidate,
-    lotteryRank: index + 1,
-  }));
-
-  // Existing ATAs are the cheapest way to maximize holder count. We lottery within each cost class
-  // so holders are not simply rewarded by balance order.
-  const byCost = shuffled.sort((a, b) => {
-    if (a.hasTargetAta !== b.hasTargetAta) return a.hasTargetAta ? -1 : 1;
-    return a.lotteryRank - b.lotteryRank;
-  });
+  // Fully random draw order every round — NOT grouped by ATA cost first. Grouping by cost meant
+  // that whenever the "already holds the target token" pool was smaller than the recipient cap,
+  // every single one of them won every round regardless of shuffle rank (nobody in a group
+  // smaller than the cap can ever be excluded by an internal reshuffle), which looked like the
+  // lottery wasn't random at all. Cost still exists as a tiebreak on an exact rank collision
+  // (astronomically unlikely with a 64-bit hash), never as a primary sort key.
+  const shuffled = stableShuffle(input.candidates, input.seed)
+    .map((candidate, index) => ({ ...candidate, lotteryRank: index + 1 }))
+    .sort((a, b) => {
+      if (a.lotteryRank !== b.lotteryRank) return a.lotteryRank - b.lotteryRank;
+      return a.hasTargetAta ? -1 : 1;
+    });
 
   let budget = Math.floor(input.poolLamports - minSwapLamports);
   const recipients: LotteryRecipient[] = [];
   let skippedForBudget = 0;
 
-  for (const candidate of byCost) {
+  for (const candidate of shuffled) {
     if (recipients.length >= maxRecipients) {
       skippedForBudget += 1;
       continue;
