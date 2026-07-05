@@ -8,7 +8,8 @@ import LiveStatsStrip from "../components/LiveStatsStrip";
 import FirstTimeTutorial from "../components/FirstTimeTutorial";
 import { HOLDER_MODE_MAX_RECIPIENTS } from "../lib/lotteryDistribution";
 import type { HolderMode } from "../lib/lotteryDistribution";
-import { DEFAULT_POLL_INTERVAL_MINUTES, POLL_INTERVAL_TIERS, feeLamportsForInterval } from "../lib/pollIntervalTiers";
+import { POLL_INTERVAL_PRESETS, DEFAULT_POLL_INTERVAL_KEY } from "../lib/pollInterval";
+import type { PollIntervalKey } from "../lib/pollInterval";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
@@ -27,7 +28,7 @@ interface Draft {
   feeMint?: string;
   rules?: DraftRule[];
   dropThresholdSol?: number;
-  pollIntervalMinutes?: number;
+  pollIntervalKey?: PollIntervalKey;
 }
 
 const RULE_LABEL: Record<RuleType, string> = {
@@ -360,9 +361,8 @@ export default function Home() {
   const canCreate = mintOk && rulesOk && validated;
   const activated = activateResult?.activated === true;
 
-  const pollIntervalMinutes = draft.pollIntervalMinutes ?? DEFAULT_POLL_INTERVAL_MINUTES;
-  const pollTierIndex = POLL_INTERVAL_TIERS.findIndex((t) => t.minutes === pollIntervalMinutes);
-  const intervalFeeSol = feeLamportsForInterval(pollIntervalMinutes) / 1e9;
+  const pollIntervalKey = draft.pollIntervalKey ?? DEFAULT_POLL_INTERVAL_KEY;
+  const pollIntervalPreset = POLL_INTERVAL_PRESETS.find((p) => p.key === pollIntervalKey)!;
 
   // Every distinct token mint the form references — resolved live for the HUD.
   const referencedMints = useMemo(() => {
@@ -394,7 +394,7 @@ export default function Home() {
   const rulesKey = JSON.stringify(rules);
   useEffect(() => {
     setValidateResult(null);
-  }, [draft.feeMint, rulesKey, draft.dropThresholdSol, draft.pollIntervalMinutes]);
+  }, [draft.feeMint, rulesKey, draft.dropThresholdSol, draft.pollIntervalKey]);
 
   const deploy = async () => {
     setDeploying(true);
@@ -413,7 +413,7 @@ export default function Home() {
             holderMode: r.holderMode,
           })),
           dropThresholdSol: draft.dropThresholdSol ?? undefined,
-          pollIntervalMinutes,
+          pollIntervalKey,
           ownerAddress: signedIn ? publicKey?.toBase58() : undefined,
         }),
       });
@@ -444,7 +444,7 @@ export default function Home() {
             holderMode: r.holderMode,
           })),
           dropThresholdSol: draft.dropThresholdSol ?? undefined,
-          pollIntervalMinutes,
+          pollIntervalKey,
         }),
       });
       const data = await res.json();
@@ -780,28 +780,27 @@ export default function Home() {
                 </div>
 
                 <div data-tour="poll-interval">
-                  <label className="block text-xs text-slate-400 mb-1.5">Fee-check interval</label>
-                  <input
-                    type="range"
-                    min={0}
-                    max={POLL_INTERVAL_TIERS.length - 1}
-                    step={1}
-                    value={pollTierIndex}
-                    onChange={(e) =>
-                      setDraft((d) => ({ ...d, pollIntervalMinutes: POLL_INTERVAL_TIERS[Number(e.target.value)].minutes }))
-                    }
-                    className="w-full accent-pink-500"
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-                    {POLL_INTERVAL_TIERS.map((t) => (
-                      <span key={t.minutes}>{t.minutes}m</span>
-                    ))}
+                  <label className="block text-xs text-slate-400 mb-1.5">Check interval</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {POLL_INTERVAL_PRESETS.map((p) => {
+                      const active = pollIntervalKey === p.key;
+                      return (
+                        <button
+                          key={p.key}
+                          type="button"
+                          onClick={() => setDraft((d) => ({ ...d, pollIntervalKey: p.key }))}
+                          className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
+                            active
+                              ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
+                              : "border-white/[0.06] text-slate-400 hover:border-pink-400/30 hover:text-slate-200"
+                          }`}
+                        >
+                          <div className="text-xs font-bold">{p.label}</div>
+                          <div className="text-[10px] opacity-80">{p.hint}</div>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <p className="text-xs text-slate-500 mt-1.5">
-                    Checked every <span className="text-white font-mono">{pollIntervalMinutes} min</span> — a{" "}
-                    <span className="text-pink-300 font-mono">{fmtSol(intervalFeeSol)} SOL</span> fee applies each time a
-                    distribute actually happens. Faster checking costs more (real RPC budget); slower is cheaper.
-                  </p>
                 </div>
 
                 <button data-tour="create-button" className="btn-deploy w-full" type="submit" disabled={!canCreate || deploying}>
@@ -844,8 +843,7 @@ export default function Home() {
                 </div>
                 <div className="p-4 rounded-none bg-surface-800/60 border border-slate-700/30 text-xs text-slate-300 space-y-2">
                   <div className="flex justify-between"><span>Token</span><span className="text-white font-mono">{deployResult.feeMint?.slice(0, 8)}…</span></div>
-                  <div className="flex justify-between"><span>Timing</span><span className="text-pink-300 font-mono">every {deployResult.intervalMinutes ?? pollIntervalMinutes} min</span></div>
-                  <div className="flex justify-between"><span>Fee per distribute</span><span className="text-pink-300 font-mono">{fmtSol(feeLamportsForInterval(deployResult.intervalMinutes ?? pollIntervalMinutes) / 1e9)} SOL</span></div>
+                  <div className="flex justify-between"><span>Timing</span><span className="text-pink-300 font-mono">{POLL_INTERVAL_PRESETS.find((p) => p.key === deployResult.pollIntervalKey)?.label ?? pollIntervalPreset.label} (every {deployResult.intervalMinutes ?? pollIntervalPreset.minutes} min)</span></div>
                   <div className="flex justify-between"><span>Status</span><span className="text-amber-400">Paused — awaiting fee-receiver setup</span></div>
                 </div>
                 <button className="btn-deploy w-full" onClick={activate} disabled={activating}>
@@ -867,7 +865,7 @@ export default function Home() {
                 <div className="text-5xl">✅</div>
                 <h2 className="text-2xl font-bold text-white">Pipeline Live</h2>
                 <p className="text-slate-300 text-sm">
-                  {(draft.rules || []).filter((r) => r.pct > 0).length} rule{(draft.rules || []).filter((r) => r.pct > 0).length === 1 ? "" : "s"} → checking every {deployResult.intervalMinutes ?? pollIntervalMinutes} min
+                  {(draft.rules || []).filter((r) => r.pct > 0).length} rule{(draft.rules || []).filter((r) => r.pct > 0).length === 1 ? "" : "s"} → checking every {deployResult.intervalMinutes ?? pollIntervalPreset.minutes} min
                 </p>
                 <div className="p-4 rounded-none bg-surface-800/60 border border-slate-700/30 text-xs text-slate-300 text-left space-y-2">
                   <div className="flex justify-between"><span>Job ID</span><span className="text-white font-mono">{deployResult.id?.slice(0, 8)}…</span></div>
@@ -921,11 +919,7 @@ export default function Home() {
                 <div className="pt-2 border-t border-slate-700/40">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Timing</span>
-                    <span className="text-white font-mono">every {pollIntervalMinutes} min</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-slate-400">Fee per distribute</span>
-                    <span className="text-white font-mono">{fmtSol(intervalFeeSol)} SOL</span>
+                    <span className="text-white font-mono">{pollIntervalPreset.label} (every {pollIntervalPreset.minutes} min)</span>
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-slate-400">Drop threshold</span>
@@ -985,9 +979,8 @@ export default function Home() {
                         <ul className="mt-1.5 space-y-1 text-slate-200">
                           <li>· Collect Pump.fun creator fees from {tokenLabel(validateResult.feeMint, tokenInfo)} as SOL</li>
                           <li>
-                            · Check every {validateResult.pollIntervalMinutes ?? pollIntervalMinutes} min — a{" "}
-                            {fmtSol((validateResult.intervalFeeLamports ?? feeLamportsForInterval(pollIntervalMinutes)) / 1e9)} SOL
-                            fee applies each time a distribute actually happens
+                            · Check every {validateResult.pollIntervalMinutes ?? pollIntervalPreset.minutes} min (
+                            {POLL_INTERVAL_PRESETS.find((p) => p.key === validateResult.pollIntervalKey)?.label ?? pollIntervalPreset.label})
                           </li>
                           <li>
                             · Once spendable SOL passes{" "}

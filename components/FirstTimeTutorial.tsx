@@ -35,7 +35,7 @@ const STEPS: TourStep[] = [
   {
     selector: '[data-tour="poll-interval"]',
     title: "Pick a check interval",
-    body: "How often the pipeline checks for collectible fees — every 1 to 30 minutes. Checking faster costs more in real infrastructure spend, so quicker tiers carry a slightly bigger flat fee per distribute; slower tiers are cheaper.",
+    body: "How often the pipeline checks for collectible fees — Spam (every 2:30), Middle Bun (every 5 min), or Low (every 10 min).",
   },
   {
     selector: '[data-tour="validate-button"]',

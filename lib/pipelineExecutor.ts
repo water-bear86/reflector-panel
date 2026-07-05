@@ -31,9 +31,7 @@ import {
 } from "./lotteryDistribution";
 import type { HolderMode } from "./lotteryDistribution";
 import { MIN_SOL_DROP_LAMPORTS, SOL_RESERVE_LAMPORTS, shouldDropWalletSol, sol, spendableWalletSolLamports } from "./moneyGate";
-import { feeLamportsForInterval } from "./pollIntervalTiers";
 import type { PipelineRecord, SplitRule } from "./pipelineStore";
-import type { CollectResult } from "./feeCollect";
 
 const HELIUS_KEY = process.env.HELIUS_API_KEY || "";
 const RPC_URL = HELIUS_KEY
@@ -585,7 +583,6 @@ export async function runPipeline(record: PipelineRecord): Promise<{
 
     const isSol = record.sourceMint === WSOL_MINT;
     let claimedLamports = 0;
-    let claim: CollectResult | undefined;
 
     // Step 0: collect this pipeline's Pump.fun creator-fee share via the fee-sharing
     // distribute crank (permissionless — our wallet is the token's sole fee receiver).
@@ -596,7 +593,7 @@ export async function runPipeline(record: PipelineRecord): Promise<{
         results.push({ type: "claim", pct: 0, skipped: true, error: "no fee_mint set for this pipeline" });
         if (isSol) return { ok: false, results, error: "creator fee collection failed: pipeline has no fee_mint configured" };
       } else {
-        claim = await collectSharedCreatorFees(connection, keypair, new PublicKey(record.feeMint));
+        const claim = await collectSharedCreatorFees(connection, keypair, new PublicKey(record.feeMint));
         claimedLamports = claim.collectedLamports ?? 0;
         if (claim.collected) results.push({ type: "claim", pct: 0, txid: claim.txid, claimedLamports });
         else if (claim.error) {
@@ -617,24 +614,6 @@ export async function runPipeline(record: PipelineRecord): Promise<{
     if (isSol) {
       // SOL mode: spend wallet SOL only above the reserve, and only once the money threshold is met.
       lamports = await connection.getBalance(keypair.publicKey);
-
-      // Per-distribute check-interval fee — charged once, only on a run that actually collected
-      // fees this cycle (never on a no-op poll), and only if it won't cut into the reserve.
-      if (claim?.collected) {
-        const intervalFeeLamports = feeLamportsForInterval(record.intervalMinutes);
-        if (lamports - intervalFeeLamports >= SOL_RESERVE_LAMPORTS) {
-          try {
-            const { txid } = await transferSol(keypair, PLATFORM_FEE_WALLET, intervalFeeLamports);
-            results.push({ type: "interval-fee", pct: 0, amountRaw: intervalFeeLamports, txid });
-            lamports -= intervalFeeLamports;
-          } catch (err: unknown) {
-            results.push({ type: "interval-fee", pct: 0, error: describeError(err) });
-          }
-        } else {
-          results.push({ type: "interval-fee", pct: 0, skipped: true, note: "wallet balance too low to cover this round's check-interval fee" });
-        }
-      }
-
       sourceBalance = spendableWalletSolLamports(lamports, SOL_RESERVE_LAMPORTS);
     } else {
       // SPL mode: the amount to split is the source token's ATA balance. Derive the ATA with the

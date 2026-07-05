@@ -16,11 +16,11 @@ const WSOL_MINT = "So11111111111111111111111111111111111111112";
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
-  const { feeMint, rules, ownerAddress, dropThresholdSol, pollIntervalMinutes } = req.body;
+  const { feeMint, rules, ownerAddress, dropThresholdSol, pollIntervalKey } = req.body;
 
-  const validated = validatePipelineInput({ feeMint, rules, dropThresholdSol, pollIntervalMinutes });
+  const validated = validatePipelineInput({ feeMint, rules, dropThresholdSol, pollIntervalKey });
   if (!validated.ok) return res.status(400).json({ error: validated.error });
-  const { mint, cleanRules, dropThresholdLamports, pollIntervalMinutes: intervalMinutes } = validated.value;
+  const { mint, cleanRules, dropThresholdLamports } = validated.value;
 
   try {
     const wallet = generatePipelineWallet();
@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sourceMint: WSOL_MINT,
       sourceWallet: wallet.publicKey, // the generated operations wallet
       rules: cleanRules,
-      intervalMinutes,
+      intervalMinutes: validated.value.pollIntervalMinutes,
       claimCreatorFees: true,
       feeMint: mint,
       dropThresholdLamports,
@@ -42,7 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       id: pipeline.id,
       walletPublicKey: wallet.publicKey,
       feeMint: mint,
-      intervalMinutes,
+      pollIntervalKey: validated.value.pollIntervalKey,
+      intervalMinutes: validated.value.pollIntervalMinutes,
       message:
         `Pipeline created (paused). Set this wallet as your token's fee receiver on Pump.fun, ` +
         `then activate: ${wallet.publicKey}`,

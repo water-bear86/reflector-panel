@@ -149,20 +149,18 @@ export default function Docs() {
                   which is never spent by your rules.
                 </p>
                 <p>
-                  You also pick how often the pipeline checks for collectible fees, from{" "}
-                  <strong className="text-white">every 1 to every 30 minutes</strong>. Checking more often means
-                  catching a distribute sooner, but it also costs more in real infrastructure spend — so faster tiers
-                  carry a slightly larger flat fee, charged once per distribute (never per check, and never on a
-                  round where nothing was collected):
+                  You also pick how often the pipeline checks for collectible fees, from three presets:
                 </p>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1 text-center">
-                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">1 min</div><div className="text-[11px] text-slate-400">0.0100 SOL</div></div>
-                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">2 min</div><div className="text-[11px] text-slate-400">0.0063 SOL</div></div>
-                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">5 min</div><div className="text-[11px] text-slate-400">0.0040 SOL</div></div>
-                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">10 min</div><div className="text-[11px] text-slate-400">0.0025 SOL</div></div>
-                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">15 min</div><div className="text-[11px] text-slate-400">0.0016 SOL</div></div>
-                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">30 min</div><div className="text-[11px] text-slate-400">0.0010 SOL</div></div>
+                <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">Spam</div><div className="text-[11px] text-slate-400">every 2:30</div></div>
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">Middle Bun</div><div className="text-[11px] text-slate-400">every 5 min</div></div>
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">Low</div><div className="text-[11px] text-slate-400">every 10 min</div></div>
                 </div>
+                <p className="text-xs text-slate-500">
+                  Whichever preset you pick, the pipeline only ever actually distributes when Pump.fun's own
+                  minimum-distributable-fee check passes — a fast check interval just means catching that moment
+                  sooner, not spending anything extra on a quiet token.
+                </p>
               </DocSection>
 
               <DocSection id="validate" title="Validate & permanence">
@@ -206,7 +204,7 @@ export default function Docs() {
                   </div>
                   <div>
                     <p className="text-white font-semibold">How often does it check for fees?</p>
-                    <p>Whatever interval you picked at creation, from once a minute to once every 30 minutes — see "Drop threshold &amp; interval" above.</p>
+                    <p>Whatever preset you picked at creation — Spam (2:30), Middle Bun (5 min), or Low (10 min) — see "Drop threshold &amp; interval" above.</p>
                   </div>
                   <div>
                     <p className="text-white font-semibold">What if I want to stop a pipeline?</p>
