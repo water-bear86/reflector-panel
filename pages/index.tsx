@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useSiws } from "../hooks/useSiws";
@@ -7,6 +8,8 @@ import LiveStatsStrip from "../components/LiveStatsStrip";
 import FirstTimeTutorial from "../components/FirstTimeTutorial";
 import { HOLDER_MODE_MAX_RECIPIENTS } from "../lib/lotteryDistribution";
 import type { HolderMode } from "../lib/lotteryDistribution";
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
 type RuleType = "burn" | "buy-burn" | "distribute" | "send";
 
@@ -291,6 +294,17 @@ export default function Home() {
   const [validating, setValidating] = useState(false);
   const [validateResult, setValidateResult] = useState<any>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [bannerAnim, setBannerAnim] = useState<object | null>(null);
+
+  // Fetched at runtime (not bundled) — the animation JSON is ~180KB.
+  useEffect(() => {
+    fetch("/banner-lottie.json")
+      .then((r) => r.json())
+      .then(setBannerAnim)
+      .catch(() => {
+        /* leave null — the placeholder box below just stays put */
+      });
+  }, []);
 
   // First-run walkthrough — shows once automatically, then only via the header's "?" button.
   useEffect(() => {
@@ -548,14 +562,11 @@ export default function Home() {
           with pump.fun creator fees.
         </h1>
         <div className="mt-6 max-w-2xl mx-auto rounded-none overflow-hidden border border-white/[0.06] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.7)]">
-          <video
-            src="/banner.webm"
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-auto block"
-          />
+          {bannerAnim ? (
+            <Lottie animationData={bannerAnim} loop autoplay className="w-full h-auto block" />
+          ) : (
+            <div className="w-full aspect-[1200/511] bg-surface-900" />
+          )}
         </div>
         <div className="mt-7 flex items-center justify-center gap-3">
           <a href="#create" className="btn-deploy inline-block !py-3 !px-7">⚡ Create a pipeline</a>

@@ -28,6 +28,7 @@
     "@vercel/analytics": "^2.0.1",
     "autoprefixer": "^10.5.2",
     "bs58": "^6.0.0",
+    "lottie-react": "^2.4.1",
     "next": "^14.2.35",
     "postcss": "^8.5.16",
     "react": "^18.3.1",
