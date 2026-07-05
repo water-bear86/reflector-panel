@@ -463,6 +463,7 @@ export default function Home() {
             <nav className="flex items-center gap-1 text-sm">
               <a href="#pipes" className="px-2.5 py-1.5 rounded-none text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors">pipes</a>
               <a href="#create" className="px-2.5 py-1.5 rounded-none text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors">create</a>
+              <a href="/docs" className="px-2.5 py-1.5 rounded-none text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors">docs</a>
               <button onClick={() => setMenuOpen(true)} className="px-2.5 py-1.5 rounded-none text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors">token</button>
             </nav>
           </div>
