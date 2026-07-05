@@ -152,7 +152,7 @@ export default function Docs() {
                   You also pick how often the pipeline checks for collectible fees, from three presets:
                 </p>
                 <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">Spam</div><div className="text-[11px] text-slate-400">every 2:30</div></div>
+                  <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">Spam</div><div className="text-[11px] text-slate-400">every 3 min</div></div>
                   <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">Middle Bun</div><div className="text-[11px] text-slate-400">every 5 min</div></div>
                   <div className="glass-input !bg-surface-900/60 space-y-0.5"><div className="font-bold text-pink-200">Low</div><div className="text-[11px] text-slate-400">every 10 min</div></div>
                 </div>
@@ -204,7 +204,7 @@ export default function Docs() {
                   </div>
                   <div>
                     <p className="text-white font-semibold">How often does it check for fees?</p>
-                    <p>Whatever preset you picked at creation — Spam (2:30), Middle Bun (5 min), or Low (10 min) — see "Drop threshold &amp; interval" above.</p>
+                    <p>Whatever preset you picked at creation — Spam (3 min), Middle Bun (5 min), or Low (10 min) — see "Drop threshold &amp; interval" above.</p>
                   </div>
                   <div>
                     <p className="text-white font-semibold">What if I want to stop a pipeline?</p>

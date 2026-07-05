@@ -35,7 +35,7 @@ const STEPS: TourStep[] = [
   {
     selector: '[data-tour="poll-interval"]',
     title: "Pick a check interval",
-    body: "How often the pipeline checks for collectible fees — Spam (every 2:30), Middle Bun (every 5 min), or Low (every 10 min).",
+    body: "How often the pipeline checks for collectible fees — Spam (every 3 min), Middle Bun (every 5 min), or Low (every 10 min).",
   },
   {
     selector: '[data-tour="validate-button"]',

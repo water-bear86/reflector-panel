@@ -13,7 +13,7 @@ export interface PollIntervalPreset {
 }
 
 export const POLL_INTERVAL_PRESETS: PollIntervalPreset[] = [
-  { key: "spam", label: "Spam", minutes: 2.5, hint: "Checks every 2:30 — fastest" },
+  { key: "spam", label: "Spam", minutes: 3, hint: "Checks every 3 min — fastest" },
   { key: "medium", label: "Middle Bun", minutes: 5, hint: "Checks every 5 min — balanced" },
   { key: "low", label: "Low", minutes: 10, hint: "Checks every 10 min — lowest overhead" },
 ];
