@@ -38,6 +38,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const COLLECT_PRIORITY_MICROLAMPORTS = 700_000;
 const REBROADCAST_INTERVAL_MS = 2_000;
 
+// Pump.fun's own minimum-distributable-fee check is very permissive — often barely more than
+// what OUR distribute transaction itself costs in network + priority fees (~147k lamports at
+// the priority rate above). Below this floor, the fee we'd pay to collect would eat most or
+// all of what's collected, so we skip the (paid) distribute attempt and let it keep accruing.
+// The free read-only accrual check above this still runs every poll — this only gates the
+// on-chain transaction.
+export const MIN_ECONOMICAL_DISTRIBUTE_LAMPORTS = 500_000; // ~3.4x the tx cost
+
 /* Same reliable confirmation as pumpClaim: re-broadcast the one signed tx until
    its own blockhash expires, rather than a fixed wall-clock timeout. */
 async function sendAndTrack(
@@ -115,6 +123,16 @@ export async function collectSharedCreatorFees(
       return {
         collected: false,
         note: `below minimum distributable fee (accrued ${min.distributableFees.toString()} lamports, need ${min.minimumRequired.toString()})`,
+      };
+    }
+
+    // Pump.fun says there's enough to distribute, but check it against OUR OWN economic floor
+    // before spending gas — its own minimum is often barely above what our distribute tx costs.
+    const accrued = min.distributableFees.toNumber();
+    if (accrued < MIN_ECONOMICAL_DISTRIBUTE_LAMPORTS) {
+      return {
+        collected: false,
+        note: `accrued ${accrued} lamports — below the ${MIN_ECONOMICAL_DISTRIBUTE_LAMPORTS}-lamport break-even floor (this poll's network fee would eat most of it), waiting for more`,
       };
     }
 
