@@ -307,6 +307,14 @@ export default function Home() {
   const [validateResult, setValidateResult] = useState<any>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [bannerAnim, setBannerAnim] = useState<object | null>(null);
+  const [walletCopied, setWalletCopied] = useState(false);
+
+  const doCopyWallet = () => {
+    if (!deployResult?.walletPublicKey) return;
+    navigator.clipboard?.writeText(deployResult.walletPublicKey);
+    setWalletCopied(true);
+    setTimeout(() => setWalletCopied(false), 1200);
+  };
 
   // Fetched at runtime (not bundled) — the animation JSON is ~180KB.
   useEffect(() => {
@@ -834,10 +842,10 @@ export default function Home() {
                   <div className="flex gap-2">
                     <code className="glass-input font-mono text-xs flex-1 break-all py-2">{deployResult.walletPublicKey}</code>
                     <button
-                      className="btn-secondary shrink-0 text-xs"
-                      onClick={() => navigator.clipboard?.writeText(deployResult.walletPublicKey)}
+                      className={`dazzle-copy btn-secondary shrink-0 text-xs ${walletCopied ? "dazzle-copied" : ""}`}
+                      onClick={doCopyWallet}
                     >
-                      Copy
+                      {walletCopied ? "Copied" : "Copy"}
                     </button>
                   </div>
                 </div>
