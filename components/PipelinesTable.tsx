@@ -76,6 +76,7 @@ function TokenCard({ p }: { p: PublicPipeline }) {
       target="_blank"
       rel="noopener noreferrer"
       className="block w-48 shrink-0 snap-start glass-card p-4 hover:brightness-110 transition"
+      aria-label={ticker ? `View ${ticker} on Pump.fun` : "View on Pump.fun"}
     >
       <div className="flex items-center gap-3 min-w-0">
         {showImg ? (
