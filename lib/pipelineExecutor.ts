@@ -524,10 +524,17 @@ async function executeRule(
 
       const distResults = received > 0n ? await distributeTokens(keypair, mintPk, srcAta, programId, holders, received) : [];
 
+      // DISTINCT new wallets this run = paid recipients who did NOT already have a token account
+      // (i.e. the pipeline created their ATA to pay them = first time we've ever paid them). Repeat
+      // holders already have an ATA and are not re-counted — this keeps "wallets paid" a true
+      // cumulative distinct count instead of a per-drop sum that drifts past the holder base.
+      const paidAddrs = new Set(distResults.map((d) => d.address));
+      const newWallets = holders.filter((h) => paidAddrs.has(h.address) && h.hasTargetAta === false).length;
+
       return {
         type: "distribute", pct: rule.pct,
         swappedRaw: swapAmountRaw, receivedRaw: received.toString(),
-        swapTxid: swapResult.txid, totalHolders: holders.length, distributed: distResults.length,
+        swapTxid: swapResult.txid, totalHolders: holders.length, distributed: distResults.length, newWallets,
         allocationMode: "equal-max-recipients", holderMode,
         ...(lottery ? {
           lottery: {
@@ -572,6 +579,10 @@ export async function runPipeline(record: PipelineRecord): Promise<{
   summary?: string;
   outLamports?: number;
   claimedLamports?: number;
+  airdropWallets?: number; // holder wallets actually paid by distribute rules this run
+  airdropNewWallets?: number; // DISTINCT first-time wallets paid this run — drives "wallets paid"
+  airdropRuns?: number; // 1 if this run paid out at least one holder, else 0
+  airdropLamports?: number; // SOL (lamports) swapped-and-distributed to holders (SOL-source only)
 }> {
   const results: RuleResult[] = [];
 
@@ -675,6 +686,9 @@ export async function runPipeline(record: PipelineRecord): Promise<{
 
     const failures: string[] = [];
     let outLamports = 0; // SOL actually deployed this run (swapped/distributed/sent)
+    let airdropWallets = 0; // holder wallets actually paid by distribute rules this run
+    let airdropNewWallets = 0; // DISTINCT first-time wallets paid this run (drives "wallets paid")
+    let airdropLamports = 0; // SOL swapped-and-distributed to holders (SOL-source only)
     for (let i = 0; i < record.rules.length; i++) {
       const rule = record.rules[i];
       const ruleAmountRaw = Math.floor(sourceBalance * (rule.pct / 100));
@@ -682,13 +696,27 @@ export async function runPipeline(record: PipelineRecord): Promise<{
       try {
         const result = await executeRule(keypair, record.id, record.sourceMint, sourceAta, ruleAmountRaw, rule, isSol, dropThresholdLamports);
         results.push(result);
+        const r = result as Record<string, unknown>;
         // Count the SOL that left the wallet: the amount swapped (distribute/buy-burn) or sent.
         // Skipped/no-op rules don't count. Only meaningful in SOL-source (creator-fee) mode.
-        if (isSol) {
-          const r = result as Record<string, unknown>;
-          if (!r.skipped && !r.error) {
-            const spent = Number(r.swappedRaw ?? r.lamports ?? ruleAmountRaw);
-            if (Number.isFinite(spent) && spent > 0) outLamports += spent;
+        if (isSol && !r.skipped && !r.error) {
+          const spent = Number(r.swappedRaw ?? r.lamports ?? ruleAmountRaw);
+          if (Number.isFinite(spent) && spent > 0) outLamports += spent;
+        }
+        // Airdrop metrics: REAL holder payouts from distribute rules only (a "distribute" that
+        // actually reached >0 wallets). Claim-only / buy-burn / send runs never count here — this
+        // is the number the top bar reports as "airdrops sent", distinct from claims. Wallets +
+        // run-count are mode-agnostic; the SOL value is only meaningful when the source is SOL.
+        if (r.type === "distribute" && !r.skipped && !r.error) {
+          const wallets = Number(r.distributed ?? 0);
+          if (Number.isFinite(wallets) && wallets > 0) {
+            airdropWallets += wallets;
+            const fresh = Number(r.newWallets ?? 0);
+            if (Number.isFinite(fresh) && fresh > 0) airdropNewWallets += fresh;
+            if (isSol) {
+              const sol = Number(r.swappedRaw ?? 0);
+              if (Number.isFinite(sol) && sol > 0) airdropLamports += sol;
+            }
           }
         }
       } catch (err: unknown) {
@@ -700,10 +728,12 @@ export async function runPipeline(record: PipelineRecord): Promise<{
       }
     }
 
+    // One run that paid any holder = one airdrop event, regardless of how many distribute rules ran.
+    const airdropRuns = airdropWallets > 0 ? 1 : 0;
     if (failures.length) {
-      return { ok: false, results, error: failures.join(" | "), outLamports, claimedLamports };
+      return { ok: false, results, error: failures.join(" | "), outLamports, claimedLamports, airdropWallets, airdropNewWallets, airdropRuns, airdropLamports };
     }
-    return { ok: true, results, outLamports, claimedLamports };
+    return { ok: true, results, outLamports, claimedLamports, airdropWallets, airdropNewWallets, airdropRuns, airdropLamports };
   } catch (err: unknown) {
     return { ok: false, results, error: describeError(err) };
   }

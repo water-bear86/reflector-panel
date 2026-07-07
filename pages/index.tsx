@@ -961,7 +961,7 @@ export default function Home() {
                   data-tour="validate-button"
                   onClick={validate}
                   disabled={validating}
-                  className="btn-secondary w-full text-xs font-bold tracking-wider py-2 disabled:opacity-50"
+                  className="w-full text-xs font-bold tracking-wider py-2 rounded-none border border-pink-400/20 text-white bg-gradient-to-b from-pink-500 to-pink-600 hover:from-pink-400 hover:to-pink-500 transition-[transform,background-color] duration-100 active:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0"
                 >
                   {validating ? "VALIDATING…" : "VALIDATE"}
                 </button>

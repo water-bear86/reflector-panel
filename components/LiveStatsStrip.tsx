@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
 
 interface PublicPipeline {
+  totalClaimedSol?: number;
   totalOutSol?: number;
+  totalAirdropWallets?: number;
+  totalAirdropRuns?: number;
+  totalAirdropSol?: number;
   lastRunStatus: string | null;
   lastRunAt: string | null;
+  lastPayoutAt: string | null;
   targetTokens: string[];
+}
+
+function fmtCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}K`;
+  return String(n);
 }
 
 function fmtSol(n: number): string {
@@ -50,17 +61,33 @@ export default function LiveStatsStrip() {
     };
   }, []);
 
-  const totalSol = pipes.reduce((sum, p) => sum + (p.totalOutSol ?? 0), 0);
   const targets = new Set(pipes.flatMap((p) => p.targetTokens)).size;
+  // Creator fees collected (money IN) — accrues on every claim, so it keeps up with new fees in
+  // real time even between drops. Distinct from SOL sent out (money OUT).
+  const claimedSol = pipes.reduce((sum, p) => sum + (p.totalClaimedSol ?? 0), 0);
+  // SOL sent out is the real, lifetime-accumulated number (total_out_lamports) — the headline
+  // figure that actually has history behind it. Restored after it was briefly hidden.
+  const totalOutSol = pipes.reduce((sum, p) => sum + (p.totalOutSol ?? 0), 0);
+  // Airdrop breakdown = REAL holder payouts only (distribute rules that reached >0 wallets).
+  // Claims never count toward these — that separation is the whole point. These counters began
+  // tracking mid-2026-07, so they trail the lifetime SOL total until fresh runs accumulate.
+  const airdropWallets = pipes.reduce((sum, p) => sum + (p.totalAirdropWallets ?? 0), 0);
+  const airdropRuns = pipes.reduce((sum, p) => sum + (p.totalAirdropRuns ?? 0), 0);
+  // A real payout = a run that actually sent SOL out to holders. Driven by last_payout_at,
+  // NOT last successful run — a claim-only or below-threshold run is a "success" but pays
+  // out nothing, and must not be counted here.
   const lastPayoutAt =
     pipes
-      .filter((p) => p.lastRunStatus === "success" && p.lastRunAt)
-      .map((p) => p.lastRunAt as string)
+      .map((p) => p.lastPayoutAt)
+      .filter((t): t is string => !!t)
       .sort()
       .pop() || null;
 
   const stats = [
-    { value: loaded ? `◎ ${fmtSol(totalSol)}` : "—", label: "SOL sent out" },
+    { value: loaded ? `◎ ${fmtSol(claimedSol)}` : "—", label: "fees claimed" },
+    { value: loaded ? `◎ ${fmtSol(totalOutSol)}` : "—", label: "SOL sent out" },
+    { value: loaded ? fmtCount(airdropWallets) : "—", label: "wallets paid" },
+    { value: loaded ? fmtCount(airdropRuns) : "—", label: "payout runs" },
     { value: loaded ? String(pipes.length) : "—", label: "pipes running" },
     { value: loaded ? String(targets) : "—", label: "tokens growing" },
     { value: loaded ? timeAgo(lastPayoutAt) : "—", label: "last payout" },

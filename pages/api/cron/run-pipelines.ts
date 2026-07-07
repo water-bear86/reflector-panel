@@ -53,6 +53,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         results: result.results,
         outLamports: result.outLamports,
         claimedLamports: result.claimedLamports,
+        airdropWallets: result.airdropWallets,
+        airdropNewWallets: result.airdropNewWallets,
+        airdropRuns: result.airdropRuns,
+        airdropLamports: result.airdropLamports,
       });
       summary.push({ id: record.id, ran: true, status: result.ok ? "success" : "error" });
     } catch (err: unknown) {

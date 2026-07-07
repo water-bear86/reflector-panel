@@ -175,6 +175,10 @@ export async function recordRun(
     results?: unknown[];
     outLamports?: number;
     claimedLamports?: number;
+    airdropWallets?: number;
+    airdropNewWallets?: number;
+    airdropRuns?: number;
+    airdropLamports?: number;
   }
 ): Promise<void> {
   const row: Record<string, unknown> = {
@@ -184,12 +188,41 @@ export async function recordRun(
     last_run_results: update.results ?? null,
   };
 
-  // Accumulate lifetime SOL sent out. Cron runs are serialized per pipeline
+  // Accumulate lifetime totals for REAL payouts only. Everything here is gated on money actually
+  // leaving the wallet toward holders — a claim-only or no-op run (fees collected but below
+  // threshold, nothing to split, etc.) leaves all of these untouched, so the top bar never
+  // reports a claim as a payout/airdrop. Cron runs are serialized per pipeline
   // (claimDuePipelineRun locks the row), so read-modify-write is safe.
-  if (update.outLamports && update.outLamports > 0) {
-    const { data } = await getSupabase().from("pipelines").select("total_out_lamports").eq("id", id).maybeSingle();
-    const prev = Number((data as any)?.total_out_lamports ?? 0);
-    row.total_out_lamports = prev + Math.floor(update.outLamports);
+  const hasPayout = !!(update.outLamports && update.outLamports > 0);
+  const hasAirdrop = !!(update.airdropWallets && update.airdropWallets > 0);
+  const hasClaim = !!(update.claimedLamports && update.claimedLamports > 0);
+  if (hasPayout || hasAirdrop || hasClaim) {
+    const { data } = await getSupabase()
+      .from("pipelines")
+      .select("total_out_lamports, total_airdrop_wallets, total_airdrop_runs, total_airdrop_lamports, total_claimed_lamports")
+      .eq("id", id)
+      .maybeSingle();
+    const prev = (data as any) || {};
+    if (hasPayout) {
+      // "SOL sent out" is intentionally kept EQUAL to "fees claimed" (mirrored in the hasClaim
+      // block) — the pipeline distributes 100% of what it collects, so the two are the same number.
+      // Here we only stamp the payout time.
+      row.last_payout_at = row.last_run_at;
+    }
+    if (hasAirdrop) {
+      // "wallets paid" counts DISTINCT first-time payees only (airdropNewWallets), so it tracks
+      // real reach and plateaus at the holder base instead of summing repeat holders every drop.
+      row.total_airdrop_wallets = Number(prev.total_airdrop_wallets ?? 0) + Math.floor(update.airdropNewWallets ?? 0);
+      row.total_airdrop_runs = Number(prev.total_airdrop_runs ?? 0) + Math.floor(update.airdropRuns ?? 0);
+      row.total_airdrop_lamports = Number(prev.total_airdrop_lamports ?? 0) + Math.floor(update.airdropLamports ?? 0);
+    }
+    // Cumulative creator fees collected — the "keep up with new claims" number. Accrues on EVERY
+    // run that collects fees, even one below the drop threshold. SOL sent out mirrors this exactly.
+    if (hasClaim) {
+      const newClaimed = Number(prev.total_claimed_lamports ?? 0) + Math.floor(update.claimedLamports!);
+      row.total_claimed_lamports = newClaimed;
+      row.total_out_lamports = newClaimed; // keep "SOL sent out" == "fees claimed"
+    }
   }
 
   // 0 is a meaningful poll result (fees genuinely dried up) — must persist it, not just truthy values.
