@@ -257,6 +257,7 @@ function TokenDetails() {
             <button
               className={`dazzle-copy btn-secondary text-sm shrink-0 py-1.5 px-3 ${copied ? "dazzle-copied" : ""}`}
               onClick={doCopy}
+              aria-label="Copy contract address"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -509,16 +510,16 @@ export default function Home() {
             </button>
             {/* Social links (mirrors the sidebar) */}
             <div className="hidden sm:flex items-center gap-1.5">
-              <a href={STIMMY.x} target="_blank" rel="noopener noreferrer" title="X / Twitter" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 text-sm hover:text-white transition-colors">
+              <a href={STIMMY.x} target="_blank" rel="noopener noreferrer" title="X / Twitter" aria-label="Visit our X profile" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 text-sm hover:text-white transition-colors">
                 𝕏
               </a>
-              <a href={`https://pump.fun/coin/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Pump.fun" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
+              <a href={`https://pump.fun/coin/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Pump.fun" aria-label="View on Pump.fun" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
                 <PumpIcon className="w-5 h-5" />
               </a>
-              <a href={`https://solscan.io/token/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Explorer" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
+              <a href={`https://solscan.io/token/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Explorer" aria-label="View on Solscan" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
                 <ScanIcon className="w-5 h-5" />
               </a>
-              <a href="https://github.com/YATSPAT/YATSPAT" target="_blank" rel="noopener noreferrer" title="GitHub (YATSPAT)" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 hover:text-white transition-colors">
+              <a href="https://github.com/YATSPAT/YATSPAT" target="_blank" rel="noopener noreferrer" title="GitHub (YATSPAT)" aria-label="View source on GitHub" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 hover:text-white transition-colors">
                 <GithubIcon className="w-5 h-5" />
               </a>
             </div>
@@ -621,8 +622,9 @@ export default function Home() {
               >
                 {/* Token */}
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-1.5">Your token</label>
+                  <label htmlFor="feeMint" className="block text-sm font-semibold text-white mb-1.5">Your token</label>
                   <input
+                    id="feeMint"
                     className="glass-input font-mono text-sm"
                     value={draft.feeMint || ""}
                     onChange={(e) => setDraft((d) => ({ ...d, feeMint: e.target.value }))}
@@ -755,8 +757,9 @@ export default function Home() {
                 </div>
 
                 <div data-tour="drop-threshold">
-                  <label className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
+                  <label htmlFor="dropThresholdSol" className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
                   <input
+                    id="dropThresholdSol"
                     type="number"
                     min="0"
                     step="0.01"
@@ -836,6 +839,7 @@ export default function Home() {
                     <button
                       className="btn-secondary shrink-0 text-xs"
                       onClick={() => navigator.clipboard?.writeText(deployResult.walletPublicKey)}
+                      aria-label="Copy pipeline wallet address"
                     >
                       Copy
                     </button>
