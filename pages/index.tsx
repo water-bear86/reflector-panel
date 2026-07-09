@@ -509,16 +509,16 @@ export default function Home() {
             </button>
             {/* Social links (mirrors the sidebar) */}
             <div className="hidden sm:flex items-center gap-1.5">
-              <a href={STIMMY.x} target="_blank" rel="noopener noreferrer" title="X / Twitter" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 text-sm hover:text-white transition-colors">
+              <a href={STIMMY.x} target="_blank" rel="noopener noreferrer" title="X / Twitter" aria-label="X (Twitter)" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 text-sm hover:text-white transition-colors">
                 𝕏
               </a>
-              <a href={`https://pump.fun/coin/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Pump.fun" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
+              <a href={`https://pump.fun/coin/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Pump.fun" aria-label="Pump.fun" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
                 <PumpIcon className="w-5 h-5" />
               </a>
-              <a href={`https://solscan.io/token/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Explorer" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
+              <a href={`https://solscan.io/token/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Explorer" aria-label="Solscan Explorer" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
                 <ScanIcon className="w-5 h-5" />
               </a>
-              <a href="https://github.com/YATSPAT/YATSPAT" target="_blank" rel="noopener noreferrer" title="GitHub (YATSPAT)" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 hover:text-white transition-colors">
+              <a href="https://github.com/YATSPAT/YATSPAT" target="_blank" rel="noopener noreferrer" title="GitHub (YATSPAT)" aria-label="GitHub Repository" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 hover:text-white transition-colors">
                 <GithubIcon className="w-5 h-5" />
               </a>
             </div>
@@ -621,14 +621,16 @@ export default function Home() {
               >
                 {/* Token */}
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-1.5">Your token</label>
+                  <label htmlFor="feeMint" className="block text-sm font-semibold text-white mb-1.5">Your token</label>
                   <input
+                    id="feeMint"
                     className="glass-input font-mono text-sm"
                     value={draft.feeMint || ""}
                     onChange={(e) => setDraft((d) => ({ ...d, feeMint: e.target.value }))}
                     placeholder="Pump.fun token mint address"
+                    aria-describedby="feeMint-hint"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
+                  <p id="feeMint-hint" className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
                 </div>
 
                 {/* Rules */}
@@ -644,6 +646,7 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
                             <select
+                              aria-label={`Rule ${i + 1} type`}
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
@@ -661,7 +664,12 @@ export default function Home() {
                             </svg>
                           </div>
                           {rules.length > 1 && (
-                            <button type="button" onClick={() => removeRule(i)} className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => removeRule(i)}
+                              className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0"
+                              aria-label={`Remove rule ${i + 1}`}
+                            >
                               Remove
                             </button>
                           )}
@@ -683,12 +691,14 @@ export default function Home() {
                         {rule.type === "distribute" && (
                           <>
                             <input
+                              aria-label="Holder mint address"
                               className="glass-input font-mono text-xs"
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
                             />
                             <input
+                              aria-label="Token to airdrop"
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
@@ -723,6 +733,7 @@ export default function Home() {
                         )}
                         {rule.type === "buy-burn" && (
                           <input
+                            aria-label="Token mint to buy back & burn"
                             className="glass-input font-mono text-xs"
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
@@ -731,6 +742,7 @@ export default function Home() {
                         )}
                         {rule.type === "send" && (
                           <input
+                            aria-label="Destination wallet address"
                             className="glass-input font-mono text-xs"
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
@@ -755,8 +767,9 @@ export default function Home() {
                 </div>
 
                 <div data-tour="drop-threshold">
-                  <label className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
+                  <label htmlFor="dropThreshold" className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
                   <input
+                    id="dropThreshold"
                     type="number"
                     min="0"
                     step="0.01"
@@ -764,8 +777,9 @@ export default function Home() {
                     onChange={(e) => setDraft((d) => ({ ...d, dropThresholdSol: e.target.value === "" ? undefined : Number(e.target.value) }))}
                     placeholder="0.5 (default)"
                     className="glass-input font-mono text-sm"
+                    aria-describedby="dropThreshold-hint"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
+                  <p id="dropThreshold-hint" className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
                   {rules.filter((r) => r.type === "distribute" && r.pct > 0).length > 0 && (
                     <div className="mt-2 space-y-1">
                       {rules
