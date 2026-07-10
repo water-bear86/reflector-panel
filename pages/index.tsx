@@ -509,16 +509,16 @@ export default function Home() {
             </button>
             {/* Social links (mirrors the sidebar) */}
             <div className="hidden sm:flex items-center gap-1.5">
-              <a href={STIMMY.x} target="_blank" rel="noopener noreferrer" title="X / Twitter" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 text-sm hover:text-white transition-colors">
+              <a href={STIMMY.x} target="_blank" rel="noopener noreferrer" title="X / Twitter" aria-label="Visit our X profile" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 text-sm hover:text-white transition-colors">
                 𝕏
               </a>
-              <a href={`https://pump.fun/coin/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Pump.fun" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
+              <a href={`https://pump.fun/coin/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Pump.fun" aria-label="View on Pump.fun" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
                 <PumpIcon className="w-5 h-5" />
               </a>
-              <a href={`https://solscan.io/token/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Explorer" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
+              <a href={`https://solscan.io/token/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Explorer" aria-label="View on Solscan explorer" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
                 <ScanIcon className="w-5 h-5" />
               </a>
-              <a href="https://github.com/YATSPAT/YATSPAT" target="_blank" rel="noopener noreferrer" title="GitHub (YATSPAT)" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 hover:text-white transition-colors">
+              <a href="https://github.com/YATSPAT/YATSPAT" target="_blank" rel="noopener noreferrer" title="GitHub (YATSPAT)" aria-label="View source on GitHub" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 hover:text-white transition-colors">
                 <GithubIcon className="w-5 h-5" />
               </a>
             </div>
@@ -621,14 +621,16 @@ export default function Home() {
               >
                 {/* Token */}
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-1.5">Your token</label>
+                  <label htmlFor="feeMint" className="block text-sm font-semibold text-white mb-1.5">Your token</label>
                   <input
+                    id="feeMint"
                     className="glass-input font-mono text-sm"
                     value={draft.feeMint || ""}
                     onChange={(e) => setDraft((d) => ({ ...d, feeMint: e.target.value }))}
                     placeholder="Pump.fun token mint address"
+                    aria-describedby="feeMint-hint"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
+                  <p id="feeMint-hint" className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
                 </div>
 
                 {/* Rules */}
@@ -647,6 +649,7 @@ export default function Home() {
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
+                              aria-label={`Action for rule ${i + 1}`}
                             >
                               {RULE_OPTIONS.map((o) => (
                                 <option key={o.type} value={o.type}>{o.label}</option>
@@ -676,6 +679,7 @@ export default function Home() {
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
+                            aria-label={`Percentage for rule ${i + 1}`}
                           />
                           <span className="w-12 text-right font-mono text-sm text-pink-300">{rule.pct}%</span>
                         </div>
@@ -687,12 +691,14 @@ export default function Home() {
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
+                              aria-label={`Holder token mint for rule ${i + 1}`}
                             />
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
+                              aria-label={`Airdrop token mint for rule ${i + 1}`}
                             />
                             <div data-tour="holder-modes">
                               <div className="grid grid-cols-3 gap-1.5">
@@ -727,6 +733,7 @@ export default function Home() {
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
+                            aria-label={`Buy back and burn token mint for rule ${i + 1}`}
                           />
                         )}
                         {rule.type === "send" && (
@@ -735,6 +742,7 @@ export default function Home() {
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
+                            aria-label={`Destination wallet for rule ${i + 1}`}
                           />
                         )}
                       </div>
@@ -755,8 +763,9 @@ export default function Home() {
                 </div>
 
                 <div data-tour="drop-threshold">
-                  <label className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
+                  <label htmlFor="dropThresholdSol" className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
                   <input
+                    id="dropThresholdSol"
                     type="number"
                     min="0"
                     step="0.01"
@@ -764,8 +773,9 @@ export default function Home() {
                     onChange={(e) => setDraft((d) => ({ ...d, dropThresholdSol: e.target.value === "" ? undefined : Number(e.target.value) }))}
                     placeholder="0.5 (default)"
                     className="glass-input font-mono text-sm"
+                    aria-describedby="dropThresholdSol-hint"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
+                  <p id="dropThresholdSol-hint" className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
                   {rules.filter((r) => r.type === "distribute" && r.pct > 0).length > 0 && (
                     <div className="mt-2 space-y-1">
                       {rules
