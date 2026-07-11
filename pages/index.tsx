@@ -487,8 +487,8 @@ export default function Home() {
       <header className="fixed top-0 inset-x-0 z-50 glass-card rounded-none border-b border-slate-700/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-nowrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-            <a href="#top" data-tour="brand" className="flex items-center gap-2.5 shrink-0">
-              <CoinLogo className="w-9 h-9" />
+            <a href="#top" data-tour="brand" className="flex items-center gap-2.5 shrink-0" aria-label="Wen Stimmy Home">
+              <CoinLogo className="w-9 h-9" aria-hidden="true" />
               <span className="text-lg font-bold text-white tracking-tight hidden sm:block">wen stimmy</span>
             </a>
             <nav className="flex items-center gap-1 text-sm">
@@ -509,16 +509,16 @@ export default function Home() {
             </button>
             {/* Social links (mirrors the sidebar) */}
             <div className="hidden sm:flex items-center gap-1.5">
-              <a href={STIMMY.x} target="_blank" rel="noopener noreferrer" title="X / Twitter" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 text-sm hover:text-white transition-colors">
+              <a href={STIMMY.x} target="_blank" rel="noopener noreferrer" title="X / Twitter" aria-label="X (formerly Twitter)" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 text-sm hover:text-white transition-colors">
                 𝕏
               </a>
-              <a href={`https://pump.fun/coin/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Pump.fun" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
+              <a href={`https://pump.fun/coin/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Pump.fun" aria-label="Pump.fun" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
                 <PumpIcon className="w-5 h-5" />
               </a>
-              <a href={`https://solscan.io/token/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Explorer" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
+              <a href={`https://solscan.io/token/${STIMMY.mint}`} target="_blank" rel="noopener noreferrer" title="Explorer" aria-label="Solscan" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] hover:bg-surface-600 transition-colors">
                 <ScanIcon className="w-5 h-5" />
               </a>
-              <a href="https://github.com/YATSPAT/YATSPAT" target="_blank" rel="noopener noreferrer" title="GitHub (YATSPAT)" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 hover:text-white transition-colors">
+              <a href="https://github.com/YATSPAT/YATSPAT" target="_blank" rel="noopener noreferrer" title="GitHub (YATSPAT)" aria-label="GitHub" className="w-9 h-9 flex items-center justify-center rounded-none bg-surface-700 border border-white/[0.04] text-slate-200 hover:text-white transition-colors">
                 <GithubIcon className="w-5 h-5" />
               </a>
             </div>
@@ -547,7 +547,7 @@ export default function Home() {
         <div className="h-full glass-card rounded-none overflow-y-auto p-5 space-y-5">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2.5">
-              <Logo className="w-8 h-8" />
+              <Logo className="w-8 h-8" aria-hidden="true" />
               <span className="text-lg font-bold text-white">Wen Stimmy</span>
             </span>
             <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="dazzle-close">
@@ -621,14 +621,16 @@ export default function Home() {
               >
                 {/* Token */}
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-1.5">Your token</label>
+                  <label htmlFor="feeMint" className="block text-sm font-semibold text-white mb-1.5">Your token</label>
                   <input
+                    id="feeMint"
                     className="glass-input font-mono text-sm"
                     value={draft.feeMint || ""}
                     onChange={(e) => setDraft((d) => ({ ...d, feeMint: e.target.value }))}
                     placeholder="Pump.fun token mint address"
+                    aria-describedby="feeMint-hint"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
+                  <p id="feeMint-hint" className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
                 </div>
 
                 {/* Rules */}
@@ -647,6 +649,7 @@ export default function Home() {
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
+                              aria-label={`Rule ${i + 1} type`}
                             >
                               {RULE_OPTIONS.map((o) => (
                                 <option key={o.type} value={o.type}>{o.label}</option>
@@ -676,8 +679,9 @@ export default function Home() {
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
+                            aria-label={`Rule ${i + 1} percentage`}
                           />
-                          <span className="w-12 text-right font-mono text-sm text-pink-300">{rule.pct}%</span>
+                          <span className="w-12 text-right font-mono text-sm text-pink-300" aria-hidden="true">{rule.pct}%</span>
                         </div>
 
                         {rule.type === "distribute" && (
@@ -687,12 +691,14 @@ export default function Home() {
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
+                              aria-label={`Rule ${i + 1} - Airdrop to holders of this token mint`}
                             />
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
+                              aria-label={`Rule ${i + 1} - Token to airdrop`}
                             />
                             <div data-tour="holder-modes">
                               <div className="grid grid-cols-3 gap-1.5">
@@ -727,6 +733,7 @@ export default function Home() {
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
+                            aria-label={`Rule ${i + 1} - Token mint to buy back & burn`}
                           />
                         )}
                         {rule.type === "send" && (
@@ -735,6 +742,7 @@ export default function Home() {
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
+                            aria-label={`Rule ${i + 1} - Destination wallet address`}
                           />
                         )}
                       </div>
@@ -755,8 +763,9 @@ export default function Home() {
                 </div>
 
                 <div data-tour="drop-threshold">
-                  <label className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
+                  <label htmlFor="dropThreshold" className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
                   <input
+                    id="dropThreshold"
                     type="number"
                     min="0"
                     step="0.01"
@@ -764,8 +773,9 @@ export default function Home() {
                     onChange={(e) => setDraft((d) => ({ ...d, dropThresholdSol: e.target.value === "" ? undefined : Number(e.target.value) }))}
                     placeholder="0.5 (default)"
                     className="glass-input font-mono text-sm"
+                    aria-describedby="dropThreshold-hint"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
+                  <p id="dropThreshold-hint" className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
                   {rules.filter((r) => r.type === "distribute" && r.pct > 0).length > 0 && (
                     <div className="mt-2 space-y-1">
                       {rules
@@ -1035,7 +1045,7 @@ export default function Home() {
       <footer className="relative border-t border-slate-800/60 mt-8">
         <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <Logo className="w-7 h-7" />
+            <Logo className="w-7 h-7" aria-hidden="true" />
             <span className="text-sm text-slate-400">
               <span className="text-slate-200 font-semibold">Wen Stimmy</span> · Automated holder growth
             </span>
