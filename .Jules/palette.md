@@ -1,0 +1,3 @@
+## 2026-07-12 - Improving Form Accessibility and Decorative Labeling
+**Learning:** Standard form inputs often lack programmatic associations between labels, inputs, and helper text, making them difficult for screen reader users to navigate. Decorative icons and redundant text also add noise to the screen reader experience.
+**Action:** Always link labels to inputs with `htmlFor`/`id`, use `aria-describedby` for helper text, and provide unique `aria-label` attributes for inputs in loops. Mark purely decorative elements with `aria-hidden="true"`. Use `aria-pressed` for toggle-style buttons to communicate state.

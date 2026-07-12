@@ -59,7 +59,7 @@ const TUTORIAL_SEEN_KEY = "wenstimmy_tutorial_seen_v1";
 
 function Logo({ className = "w-10 h-10" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 40 40" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" viewBox="0 0 40 40" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="reflector-logo-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#d946ef" />
@@ -77,7 +77,7 @@ function Logo({ className = "w-10 h-10" }: { className?: string }) {
 // gambling/pump.fun spirit of the app, distinct from the plain "R" wordmark used elsewhere.
 function CoinLogo({ className = "w-9 h-9" }: { className?: string }) {
   return (
-    <span className={`coin-spin inline-block shrink-0 ${className}`}>
+    <span aria-hidden="true" className={`coin-spin inline-block shrink-0 ${className}`}>
       <span className="coin-spin-inner">
         <span className="coin-face coin-face-front flex items-center justify-center bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white font-black text-base leading-none">
           S
@@ -93,7 +93,7 @@ function CoinLogo({ className = "w-9 h-9" }: { className?: string }) {
 /* Pump.fun pill icon */
 function PumpIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(45 50 50)">
         <rect x="30" y="10" width="40" height="80" rx="20" fill="#ffffff" />
         <path d="M30 50 H70 V70 A20 20 0 0 1 50 90 A20 20 0 0 1 30 70 Z" fill="#4fd18a" />
@@ -109,7 +109,7 @@ function PumpIcon({ className = "w-4 h-4" }: { className?: string }) {
 /* Explorer "Q" icon — teal ring + purple core */
 function ScanIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg">
       <circle
         cx="50"
         cy="50"
@@ -129,7 +129,7 @@ function ScanIcon({ className = "w-4 h-4" }: { className?: string }) {
 /* GitHub mark */
 function GithubIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" className={className} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" viewBox="0 0 16 16" className={className} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
     </svg>
   );
@@ -621,14 +621,16 @@ export default function Home() {
               >
                 {/* Token */}
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-1.5">Your token</label>
+                  <label htmlFor="fee-mint" className="block text-sm font-semibold text-white mb-1.5">Your token</label>
                   <input
+                    id="fee-mint"
                     className="glass-input font-mono text-sm"
                     value={draft.feeMint || ""}
                     onChange={(e) => setDraft((d) => ({ ...d, feeMint: e.target.value }))}
                     placeholder="Pump.fun token mint address"
+                    aria-describedby="fee-mint-hint"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
+                  <p id="fee-mint-hint" className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
                 </div>
 
                 {/* Rules */}
@@ -644,6 +646,7 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
                             <select
+                              aria-label={`Rule ${i + 1} type`}
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
@@ -669,6 +672,7 @@ export default function Home() {
 
                         <div className="flex items-center gap-3">
                           <input
+                            aria-label={`Rule ${i + 1} percentage`}
                             type="range"
                             min={0}
                             max={100}
@@ -677,18 +681,20 @@ export default function Home() {
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
                           />
-                          <span className="w-12 text-right font-mono text-sm text-pink-300">{rule.pct}%</span>
+                          <span className="w-12 text-right font-mono text-sm text-pink-300" aria-hidden="true">{rule.pct}%</span>
                         </div>
 
                         {rule.type === "distribute" && (
                           <>
                             <input
+                              aria-label={`Rule ${i + 1} holder mint`}
                               className="glass-input font-mono text-xs"
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
                             />
                             <input
+                              aria-label={`Rule ${i + 1} airdrop token mint`}
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
@@ -702,6 +708,7 @@ export default function Home() {
                                     <button
                                       key={m.key}
                                       type="button"
+                                      aria-pressed={active}
                                       onClick={() => updateRule(i, { holderMode: m.key })}
                                       className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                                         active
@@ -723,6 +730,7 @@ export default function Home() {
                         )}
                         {rule.type === "buy-burn" && (
                           <input
+                            aria-label={`Rule ${i + 1} buy-burn target mint`}
                             className="glass-input font-mono text-xs"
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
@@ -731,6 +739,7 @@ export default function Home() {
                         )}
                         {rule.type === "send" && (
                           <input
+                            aria-label={`Rule ${i + 1} target wallet`}
                             className="glass-input font-mono text-xs"
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
@@ -755,8 +764,9 @@ export default function Home() {
                 </div>
 
                 <div data-tour="drop-threshold">
-                  <label className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
+                  <label htmlFor="drop-threshold" className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
                   <input
+                    id="drop-threshold"
                     type="number"
                     min="0"
                     step="0.01"
@@ -764,8 +774,9 @@ export default function Home() {
                     onChange={(e) => setDraft((d) => ({ ...d, dropThresholdSol: e.target.value === "" ? undefined : Number(e.target.value) }))}
                     placeholder="0.5 (default)"
                     className="glass-input font-mono text-sm"
+                    aria-describedby="drop-threshold-hint"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
+                  <p id="drop-threshold-hint" className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
                   {rules.filter((r) => r.type === "distribute" && r.pct > 0).length > 0 && (
                     <div className="mt-2 space-y-1">
                       {rules
@@ -788,6 +799,7 @@ export default function Home() {
                         <button
                           key={p.key}
                           type="button"
+                          aria-pressed={active}
                           onClick={() => setDraft((d) => ({ ...d, pollIntervalKey: p.key }))}
                           className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                             active
