@@ -621,14 +621,16 @@ export default function Home() {
               >
                 {/* Token */}
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-1.5">Your token</label>
+                  <label htmlFor="feeMint" className="block text-sm font-semibold text-white mb-1.5">Your token</label>
                   <input
+                    id="feeMint"
+                    aria-describedby="feeMint-hint"
                     className="glass-input font-mono text-sm"
                     value={draft.feeMint || ""}
                     onChange={(e) => setDraft((d) => ({ ...d, feeMint: e.target.value }))}
                     placeholder="Pump.fun token mint address"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
+                  <p id="feeMint-hint" className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
                 </div>
 
                 {/* Rules */}
@@ -644,6 +646,7 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
                             <select
+                              aria-label={`Rule ${i + 1} type`}
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
@@ -661,7 +664,12 @@ export default function Home() {
                             </svg>
                           </div>
                           {rules.length > 1 && (
-                            <button type="button" onClick={() => removeRule(i)} className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => removeRule(i)}
+                              className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0"
+                              aria-label={`Remove rule ${i + 1}`}
+                            >
                               Remove
                             </button>
                           )}
@@ -676,6 +684,7 @@ export default function Home() {
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
+                            aria-label={`Rule ${i + 1} percentage`}
                           />
                           <span className="w-12 text-right font-mono text-sm text-pink-300">{rule.pct}%</span>
                         </div>
@@ -687,12 +696,14 @@ export default function Home() {
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
+                              aria-label={`Rule ${i + 1} holder mint`}
                             />
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
+                              aria-label={`Rule ${i + 1} target token mint`}
                             />
                             <div data-tour="holder-modes">
                               <div className="grid grid-cols-3 gap-1.5">
@@ -727,6 +738,7 @@ export default function Home() {
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
+                            aria-label={`Rule ${i + 1} target mint to burn`}
                           />
                         )}
                         {rule.type === "send" && (
@@ -735,6 +747,7 @@ export default function Home() {
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
+                            aria-label={`Rule ${i + 1} target wallet`}
                           />
                         )}
                       </div>
@@ -755,8 +768,10 @@ export default function Home() {
                 </div>
 
                 <div data-tour="drop-threshold">
-                  <label className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
+                  <label htmlFor="dropThreshold" className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
                   <input
+                    id="dropThreshold"
+                    aria-describedby="dropThreshold-hint"
                     type="number"
                     min="0"
                     step="0.01"
@@ -765,7 +780,7 @@ export default function Home() {
                     placeholder="0.5 (default)"
                     className="glass-input font-mono text-sm"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
+                  <p id="dropThreshold-hint" className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
                   {rules.filter((r) => r.type === "distribute" && r.pct > 0).length > 0 && (
                     <div className="mt-2 space-y-1">
                       {rules
