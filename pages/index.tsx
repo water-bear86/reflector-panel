@@ -59,7 +59,7 @@ const TUTORIAL_SEEN_KEY = "wenstimmy_tutorial_seen_v1";
 
 function Logo({ className = "w-10 h-10" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 40 40" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 40 40" className={className} fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <linearGradient id="reflector-logo-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#d946ef" />
@@ -77,7 +77,7 @@ function Logo({ className = "w-10 h-10" }: { className?: string }) {
 // gambling/pump.fun spirit of the app, distinct from the plain "R" wordmark used elsewhere.
 function CoinLogo({ className = "w-9 h-9" }: { className?: string }) {
   return (
-    <span className={`coin-spin inline-block shrink-0 ${className}`}>
+    <span className={`coin-spin inline-block shrink-0 ${className}`} aria-hidden="true">
       <span className="coin-spin-inner">
         <span className="coin-face coin-face-front flex items-center justify-center bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white font-black text-base leading-none">
           S
@@ -621,14 +621,16 @@ export default function Home() {
               >
                 {/* Token */}
                 <div>
-                  <label className="block text-sm font-semibold text-white mb-1.5">Your token</label>
+                  <label htmlFor="feeMint" className="block text-sm font-semibold text-white mb-1.5">Your token</label>
                   <input
+                    id="feeMint"
+                    aria-describedby="feeMint-hint"
                     className="glass-input font-mono text-sm"
                     value={draft.feeMint || ""}
                     onChange={(e) => setDraft((d) => ({ ...d, feeMint: e.target.value }))}
                     placeholder="Pump.fun token mint address"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
+                  <p id="feeMint-hint" className="text-xs text-slate-500 mt-1.5">The token whose Pump.fun creator fees this pipeline collects.</p>
                 </div>
 
                 {/* Rules */}
@@ -755,8 +757,10 @@ export default function Home() {
                 </div>
 
                 <div data-tour="drop-threshold">
-                  <label className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
+                  <label htmlFor="dropThresholdSol" className="block text-xs text-slate-400 mb-1.5">SOL drop threshold (optional)</label>
                   <input
+                    id="dropThresholdSol"
+                    aria-describedby="dropThresholdSol-hint"
                     type="number"
                     min="0"
                     step="0.01"
@@ -765,7 +769,7 @@ export default function Home() {
                     placeholder="0.5 (default)"
                     className="glass-input font-mono text-sm"
                   />
-                  <p className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
+                  <p id="dropThresholdSol-hint" className="text-xs text-slate-500 mt-1.5">Fees accumulate until spendable SOL passes this, then a round fires.</p>
                   {rules.filter((r) => r.type === "distribute" && r.pct > 0).length > 0 && (
                     <div className="mt-2 space-y-1">
                       {rules
