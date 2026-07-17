@@ -642,10 +642,11 @@ export default function Home() {
 
                   <div className="space-y-3">
                     {rules.map((rule, i) => (
-                      <div key={i} className="rounded-none border border-white/[0.05] bg-surface-900/60 p-3 space-y-3">
+                      <div key={i} className="rounded-none border border-white/[0.05] bg-surface-900/60 p-3 space-y-3" role="region" aria-label={`Rule number ${i + 1}`}>
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
                             <select
+                              aria-label={`Action type for Rule ${i + 1}`}
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
@@ -658,12 +659,18 @@ export default function Home() {
                               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-pink-400"
                               viewBox="0 0 20 20"
                               fill="none"
+                              aria-hidden="true"
                             >
                               <path d="M4.5 7.5l5.5 5.5 5.5-5.5" stroke="currentColor" strokeWidth="3.25" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           </div>
                           {rules.length > 1 && (
-                            <button type="button" onClick={() => removeRule(i)} className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => removeRule(i)}
+                              aria-label={`Remove Rule ${i + 1}`}
+                              className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0"
+                            >
                               Remove
                             </button>
                           )}
@@ -677,9 +684,10 @@ export default function Home() {
                             value={rule.pct}
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
+                            aria-label={`Fee percentage allocated for Rule ${i + 1}`}
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
                           />
-                          <span className="w-12 text-right font-mono text-sm text-pink-300">{rule.pct}%</span>
+                          <span className="w-12 text-right font-mono text-sm text-pink-300" aria-hidden="true">{rule.pct}%</span>
                         </div>
 
                         {rule.type === "distribute" && (
@@ -689,21 +697,24 @@ export default function Home() {
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
+                              aria-label={`Token mint address to read holders from for Rule ${i + 1}`}
                             />
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
+                              aria-label={`Token mint address to distribute/airdrop for Rule ${i + 1}`}
                             />
                             <div data-tour="holder-modes">
-                              <div className="grid grid-cols-3 gap-1.5">
+                              <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={`Holder modes selection for Rule ${i + 1}`}>
                                 {HOLDER_MODES.map((m) => {
                                   const active = (rule.holderMode || "spam") === m.key;
                                   return (
                                     <button
                                       key={m.key}
                                       type="button"
+                                      aria-pressed={active}
                                       onClick={() => updateRule(i, { holderMode: m.key })}
                                       className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                                         active
@@ -729,6 +740,7 @@ export default function Home() {
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
+                            aria-label={`Token mint address to buy back and burn for Rule ${i + 1}`}
                           />
                         )}
                         {rule.type === "send" && (
@@ -737,6 +749,7 @@ export default function Home() {
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
+                            aria-label={`Destination wallet address for Rule ${i + 1}`}
                           />
                         )}
                       </div>
@@ -785,13 +798,14 @@ export default function Home() {
 
                 <div data-tour="poll-interval">
                   <label className="block text-xs text-slate-400 mb-1.5">Check interval</label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="Check Interval Preset">
                     {POLL_INTERVAL_PRESETS.map((p) => {
                       const active = pollIntervalKey === p.key;
                       return (
                         <button
                           key={p.key}
                           type="button"
+                          aria-pressed={active}
                           onClick={() => setDraft((d) => ({ ...d, pollIntervalKey: p.key }))}
                           className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                             active
