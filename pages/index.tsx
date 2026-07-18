@@ -300,8 +300,16 @@ export default function Home() {
   const [draft, setDraft] = useState<Draft>({ rules: [{ ...newRule(), pct: 100 }] });
   const [deploying, setDeploying] = useState(false);
   const [deployResult, setDeployResult] = useState<any>(null);
+  const [walletCopied, setWalletCopied] = useState(false);
   const [activating, setActivating] = useState(false);
   const [activateResult, setActivateResult] = useState<any>(null);
+
+  const doCopyWallet = () => {
+    if (!deployResult?.walletPublicKey) return;
+    navigator.clipboard?.writeText(deployResult.walletPublicKey);
+    setWalletCopied(true);
+    setTimeout(() => setWalletCopied(false), 1200);
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validateResult, setValidateResult] = useState<any>(null);
@@ -834,14 +842,17 @@ export default function Home() {
                   <span className="text-white font-semibold"> fee receiver</span>, then activate below.
                 </p>
                 <div>
-                  <label className="text-xs text-slate-400 mb-1.5 block">Your pipeline wallet (set this as the fee receiver)</label>
+                  <label htmlFor="pipeline-wallet-address" className="text-xs text-slate-400 mb-1.5 block">Your pipeline wallet (set this as the fee receiver)</label>
                   <div className="flex gap-2">
-                    <code className="glass-input font-mono text-xs flex-1 break-all py-2">{deployResult.walletPublicKey}</code>
+                    <code id="pipeline-wallet-address" className="glass-input font-mono text-xs flex-1 break-all py-2">{deployResult.walletPublicKey}</code>
                     <button
-                      className="btn-secondary shrink-0 text-xs"
-                      onClick={() => navigator.clipboard?.writeText(deployResult.walletPublicKey)}
+                      type="button"
+                      aria-label="Copy pipeline wallet address to clipboard"
+                      aria-live="polite"
+                      className={`dazzle-copy btn-secondary shrink-0 text-xs py-2 px-3 ${walletCopied ? "dazzle-copied" : ""}`}
+                      onClick={doCopyWallet}
                     >
-                      Copy
+                      {walletCopied ? "Copied" : "Copy"}
                     </button>
                   </div>
                 </div>
