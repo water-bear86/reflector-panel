@@ -648,6 +648,7 @@ export default function Home() {
                             <select
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
+                              aria-label={`Rule ${i + 1} action type`}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
                             >
                               {RULE_OPTIONS.map((o) => (
@@ -663,7 +664,12 @@ export default function Home() {
                             </svg>
                           </div>
                           {rules.length > 1 && (
-                            <button type="button" onClick={() => removeRule(i)} className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => removeRule(i)}
+                              aria-label={`Remove rule ${i + 1}`}
+                              className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0"
+                            >
                               Remove
                             </button>
                           )}
@@ -675,6 +681,7 @@ export default function Home() {
                             min={0}
                             max={100}
                             value={rule.pct}
+                            aria-label={`Rule ${i + 1} allocation percentage`}
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
@@ -687,12 +694,14 @@ export default function Home() {
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.holderMint || ""}
+                              aria-label={`Rule ${i + 1} holder token mint address`}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
                             />
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
+                              aria-label={`Rule ${i + 1} distribution target token mint address`}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
                             />
@@ -705,6 +714,8 @@ export default function Home() {
                                       key={m.key}
                                       type="button"
                                       onClick={() => updateRule(i, { holderMode: m.key })}
+                                      aria-pressed={active}
+                                      aria-label={`Rule ${i + 1} reach mode ${m.label}`}
                                       className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                                         active
                                           ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
@@ -727,6 +738,7 @@ export default function Home() {
                           <input
                             className="glass-input font-mono text-xs"
                             value={rule.targetMint || ""}
+                            aria-label={`Rule ${i + 1} buyback target token mint address`}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
                           />
@@ -735,6 +747,7 @@ export default function Home() {
                           <input
                             className="glass-input font-mono text-xs"
                             value={rule.targetWallet || ""}
+                            aria-label={`Rule ${i + 1} destination wallet address`}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
                           />
@@ -793,6 +806,7 @@ export default function Home() {
                           key={p.key}
                           type="button"
                           onClick={() => setDraft((d) => ({ ...d, pollIntervalKey: p.key }))}
+                          aria-pressed={active}
                           className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                             active
                               ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
