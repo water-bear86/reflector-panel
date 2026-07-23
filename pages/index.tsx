@@ -257,6 +257,7 @@ function TokenDetails() {
             <button
               className={`dazzle-copy btn-secondary text-sm shrink-0 py-1.5 px-3 ${copied ? "dazzle-copied" : ""}`}
               onClick={doCopy}
+              aria-label={copied ? "Contract address copied" : "Copy contract address to clipboard"}
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -645,7 +646,9 @@ export default function Home() {
                       <div key={i} className="rounded-none border border-white/[0.05] bg-surface-900/60 p-3 space-y-3">
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
+                            <label htmlFor={`rule-type-${i}`} className="sr-only">Rule type for rule {i + 1}</label>
                             <select
+                              id={`rule-type-${i}`}
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
@@ -658,6 +661,7 @@ export default function Home() {
                               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-pink-400"
                               viewBox="0 0 20 20"
                               fill="none"
+                              aria-hidden="true"
                             >
                               <path d="M4.5 7.5l5.5 5.5 5.5-5.5" stroke="currentColor" strokeWidth="3.25" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
@@ -675,6 +679,7 @@ export default function Home() {
                             min={0}
                             max={100}
                             value={rule.pct}
+                            aria-label={`Percentage allocation for rule ${i + 1}`}
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
@@ -684,13 +689,17 @@ export default function Home() {
 
                         {rule.type === "distribute" && (
                           <>
+                            <label htmlFor={`holder-mint-${i}`} className="sr-only">Holder token mint address for rule {i + 1}</label>
                             <input
+                              id={`holder-mint-${i}`}
                               className="glass-input font-mono text-xs"
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
                             />
+                            <label htmlFor={`target-mint-${i}`} className="sr-only">Target token mint to airdrop for rule {i + 1}</label>
                             <input
+                              id={`target-mint-${i}`}
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
@@ -704,6 +713,8 @@ export default function Home() {
                                     <button
                                       key={m.key}
                                       type="button"
+                                      aria-pressed={active}
+                                      aria-label={`Holder mode ${m.label} for rule ${i + 1}`}
                                       onClick={() => updateRule(i, { holderMode: m.key })}
                                       className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                                         active
@@ -724,20 +735,28 @@ export default function Home() {
                           </>
                         )}
                         {rule.type === "buy-burn" && (
-                          <input
-                            className="glass-input font-mono text-xs"
-                            value={rule.targetMint || ""}
-                            onChange={(e) => updateRule(i, { targetMint: e.target.value })}
-                            placeholder="Token mint to buy back & burn…"
-                          />
+                          <>
+                            <label htmlFor={`burn-target-mint-${i}`} className="sr-only">Token mint address to burn for rule {i + 1}</label>
+                            <input
+                              id={`burn-target-mint-${i}`}
+                              className="glass-input font-mono text-xs"
+                              value={rule.targetMint || ""}
+                              onChange={(e) => updateRule(i, { targetMint: e.target.value })}
+                              placeholder="Token mint to buy back & burn…"
+                            />
+                          </>
                         )}
                         {rule.type === "send" && (
-                          <input
-                            className="glass-input font-mono text-xs"
-                            value={rule.targetWallet || ""}
-                            onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
-                            placeholder="Destination wallet address…"
-                          />
+                          <>
+                            <label htmlFor={`target-wallet-${i}`} className="sr-only">Destination wallet address for rule {i + 1}</label>
+                            <input
+                              id={`target-wallet-${i}`}
+                              className="glass-input font-mono text-xs"
+                              value={rule.targetWallet || ""}
+                              onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
+                              placeholder="Destination wallet address…"
+                            />
+                          </>
                         )}
                       </div>
                     ))}
