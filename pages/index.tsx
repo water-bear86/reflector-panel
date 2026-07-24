@@ -250,11 +250,13 @@ function TokenDetails() {
         <span className="text-white font-mono text-sm">{STIMMY.ticker}</span>
       </div>
       <div>
-        <span className="text-slate-400 text-sm block mb-1">Contract</span>
+        <span id="stimmyContractLabel" className="text-slate-400 text-sm block mb-1">Contract</span>
         {hasMint ? (
           <div className="flex gap-2">
-            <code className="dazzle-contract glass-input font-mono text-sm flex-1 break-all py-1.5">{shortMint(STIMMY.mint)}</code>
+            <code id="stimmyContractCode" className="dazzle-contract glass-input font-mono text-sm flex-1 break-all py-1.5">{shortMint(STIMMY.mint)}</code>
             <button
+              aria-label={copied ? "Copied token contract address" : "Copy token contract address"}
+              aria-describedby="stimmyContractCode"
               className={`dazzle-copy btn-secondary text-sm shrink-0 py-1.5 px-3 ${copied ? "dazzle-copied" : ""}`}
               onClick={doCopy}
             >
@@ -307,6 +309,15 @@ export default function Home() {
   const [validateResult, setValidateResult] = useState<any>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [bannerAnim, setBannerAnim] = useState<object | null>(null);
+  const [walletCopied, setWalletCopied] = useState(false);
+
+  const copyWallet = () => {
+    if (deployResult?.walletPublicKey) {
+      navigator.clipboard?.writeText(deployResult.walletPublicKey);
+      setWalletCopied(true);
+      setTimeout(() => setWalletCopied(false), 1200);
+    }
+  };
 
   // Fetched at runtime (not bundled) — the animation JSON is ~180KB.
   useEffect(() => {
@@ -646,6 +657,7 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
                             <select
+                              aria-label={`Rule ${i + 1} type`}
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
@@ -675,6 +687,7 @@ export default function Home() {
                             min={0}
                             max={100}
                             value={rule.pct}
+                            aria-label={`Rule ${i + 1} percentage`}
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
@@ -686,12 +699,14 @@ export default function Home() {
                           <>
                             <input
                               className="glass-input font-mono text-xs"
+                              aria-label={`Rule ${i + 1} holder token mint address`}
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
                             />
                             <input
                               className="glass-input font-mono text-xs"
+                              aria-label={`Rule ${i + 1} airdrop target token mint`}
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
@@ -704,6 +719,7 @@ export default function Home() {
                                     <button
                                       key={m.key}
                                       type="button"
+                                      aria-pressed={active}
                                       onClick={() => updateRule(i, { holderMode: m.key })}
                                       className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                                         active
@@ -726,6 +742,7 @@ export default function Home() {
                         {rule.type === "buy-burn" && (
                           <input
                             className="glass-input font-mono text-xs"
+                            aria-label={`Rule ${i + 1} buyback and burn target token mint`}
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
@@ -734,6 +751,7 @@ export default function Home() {
                         {rule.type === "send" && (
                           <input
                             className="glass-input font-mono text-xs"
+                            aria-label={`Rule ${i + 1} destination wallet address`}
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
@@ -792,6 +810,7 @@ export default function Home() {
                         <button
                           key={p.key}
                           type="button"
+                          aria-pressed={active}
                           onClick={() => setDraft((d) => ({ ...d, pollIntervalKey: p.key }))}
                           className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                             active
@@ -834,14 +853,16 @@ export default function Home() {
                   <span className="text-white font-semibold"> fee receiver</span>, then activate below.
                 </p>
                 <div>
-                  <label className="text-xs text-slate-400 mb-1.5 block">Your pipeline wallet (set this as the fee receiver)</label>
+                  <span className="text-xs text-slate-400 mb-1.5 block">Your pipeline wallet (set this as the fee receiver)</span>
                   <div className="flex gap-2">
-                    <code className="glass-input font-mono text-xs flex-1 break-all py-2">{deployResult.walletPublicKey}</code>
+                    <code id="pipelineWalletCode" className="glass-input font-mono text-xs flex-1 break-all py-2">{deployResult.walletPublicKey}</code>
                     <button
-                      className="btn-secondary shrink-0 text-xs"
-                      onClick={() => navigator.clipboard?.writeText(deployResult.walletPublicKey)}
+                      aria-label={walletCopied ? "Copied wallet address" : "Copy wallet address"}
+                      aria-describedby="pipelineWalletCode"
+                      className={`dazzle-copy btn-secondary shrink-0 text-xs ${walletCopied ? "dazzle-copied" : ""}`}
+                      onClick={copyWallet}
                     >
-                      Copy
+                      {walletCopied ? "Copied" : "Copy"}
                     </button>
                   </div>
                 </div>
