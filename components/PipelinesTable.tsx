@@ -158,17 +158,22 @@ export default function PipelinesTable() {
 
       {/* Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded-none text-xs font-medium whitespace-nowrap transition-colors ${
-              tab === t.key ? "bg-fuchsia-500/20 border border-fuchsia-400/40 text-fuchsia-200" : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-3 py-1.5 rounded-none text-xs font-medium whitespace-nowrap transition-colors ${
+                active ? "bg-fuchsia-500/20 border border-fuchsia-400/40 text-fuchsia-200" : "text-slate-400 hover:text-slate-200"
+              }`}
+              aria-pressed={active}
+              aria-label={`Filter pipelines by ${t.label}`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Carousel — one token card per pipe */}
