@@ -649,6 +649,7 @@ export default function Home() {
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
+                              aria-label={`Rule ${i + 1} type`}
                             >
                               {RULE_OPTIONS.map((o) => (
                                 <option key={o.type} value={o.type}>{o.label}</option>
@@ -663,7 +664,12 @@ export default function Home() {
                             </svg>
                           </div>
                           {rules.length > 1 && (
-                            <button type="button" onClick={() => removeRule(i)} className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => removeRule(i)}
+                              className="text-xs text-rose-400 hover:text-rose-300 px-2 shrink-0"
+                              aria-label={`Remove rule ${i + 1}`}
+                            >
                               Remove
                             </button>
                           )}
@@ -678,6 +684,7 @@ export default function Home() {
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
+                            aria-label={`Rule ${i + 1} percentage`}
                           />
                           <span className="w-12 text-right font-mono text-sm text-pink-300">{rule.pct}%</span>
                         </div>
@@ -689,15 +696,17 @@ export default function Home() {
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
+                              aria-label={`Rule ${i + 1} holder token mint address`}
                             />
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
+                              aria-label={`Rule ${i + 1} target airdrop token mint address`}
                             />
                             <div data-tour="holder-modes">
-                              <div className="grid grid-cols-3 gap-1.5">
+                              <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={`Rule ${i + 1} holder reach mode`}>
                                 {HOLDER_MODES.map((m) => {
                                   const active = (rule.holderMode || "spam") === m.key;
                                   return (
@@ -710,6 +719,7 @@ export default function Home() {
                                           ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
                                           : "border-white/[0.06] text-slate-400 hover:border-pink-400/30 hover:text-slate-200"
                                       }`}
+                                      aria-pressed={active}
                                     >
                                       <div className="text-xs font-bold">{m.label}</div>
                                       <div className="text-[10px] opacity-80">{m.hint}</div>
@@ -729,6 +739,7 @@ export default function Home() {
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
+                            aria-label={`Rule ${i + 1} buyback and burn token mint address`}
                           />
                         )}
                         {rule.type === "send" && (
@@ -737,6 +748,7 @@ export default function Home() {
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
+                            aria-label={`Rule ${i + 1} destination wallet address`}
                           />
                         )}
                       </div>
@@ -784,8 +796,8 @@ export default function Home() {
                 </div>
 
                 <div data-tour="poll-interval">
-                  <label className="block text-xs text-slate-400 mb-1.5">Check interval</label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <label className="block text-xs text-slate-400 mb-1.5" id="poll-interval-label">Check interval</label>
+                  <div className="grid grid-cols-3 gap-1.5" role="group" aria-labelledby="poll-interval-label">
                     {POLL_INTERVAL_PRESETS.map((p) => {
                       const active = pollIntervalKey === p.key;
                       return (
@@ -798,6 +810,7 @@ export default function Home() {
                               ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
                               : "border-white/[0.06] text-slate-400 hover:border-pink-400/30 hover:text-slate-200"
                           }`}
+                          aria-pressed={active}
                         >
                           <div className="text-xs font-bold">{p.label}</div>
                           <div className="text-[10px] opacity-80">{p.hint}</div>
