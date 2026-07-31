@@ -257,6 +257,7 @@ function TokenDetails() {
             <button
               className={`dazzle-copy btn-secondary text-sm shrink-0 py-1.5 px-3 ${copied ? "dazzle-copied" : ""}`}
               onClick={doCopy}
+              aria-label={copied ? "Contract address copied to clipboard" : "Copy contract address to clipboard"}
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -649,6 +650,7 @@ export default function Home() {
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
+                              aria-label={`Rule ${i + 1} action type`}
                             >
                               {RULE_OPTIONS.map((o) => (
                                 <option key={o.type} value={o.type}>{o.label}</option>
@@ -678,6 +680,7 @@ export default function Home() {
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
+                            aria-label={`Rule ${i + 1} percentage`}
                           />
                           <span className="w-12 text-right font-mono text-sm text-pink-300">{rule.pct}%</span>
                         </div>
@@ -689,12 +692,14 @@ export default function Home() {
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
+                              aria-label={`Rule ${i + 1} airdrop holder token mint address`}
                             />
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
+                              aria-label={`Rule ${i + 1} token mint address to airdrop`}
                             />
                             <div data-tour="holder-modes">
                               <div className="grid grid-cols-3 gap-1.5">
@@ -705,6 +710,8 @@ export default function Home() {
                                       key={m.key}
                                       type="button"
                                       onClick={() => updateRule(i, { holderMode: m.key })}
+                                      aria-pressed={active}
+                                      aria-label={`Rule ${i + 1} holder reach mode: ${m.label}`}
                                       className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                                         active
                                           ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
@@ -729,6 +736,7 @@ export default function Home() {
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
+                            aria-label={`Rule ${i + 1} token mint to buy back and burn`}
                           />
                         )}
                         {rule.type === "send" && (
@@ -737,6 +745,7 @@ export default function Home() {
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
+                            aria-label={`Rule ${i + 1} destination wallet address`}
                           />
                         )}
                       </div>
@@ -793,6 +802,8 @@ export default function Home() {
                           key={p.key}
                           type="button"
                           onClick={() => setDraft((d) => ({ ...d, pollIntervalKey: p.key }))}
+                          aria-pressed={active}
+                          aria-label={`Check interval timing preset: ${p.label}`}
                           className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                             active
                               ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
