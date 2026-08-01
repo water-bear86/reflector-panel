@@ -161,6 +161,7 @@ export default function PipelinesTable() {
         {TABS.map((t) => (
           <button
             key={t.key}
+            aria-pressed={tab === t.key}
             onClick={() => setTab(t.key)}
             className={`px-3 py-1.5 rounded-none text-xs font-medium whitespace-nowrap transition-colors ${
               tab === t.key ? "bg-fuchsia-500/20 border border-fuchsia-400/40 text-fuchsia-200" : "text-slate-400 hover:text-slate-200"
