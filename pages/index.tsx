@@ -645,7 +645,9 @@ export default function Home() {
                       <div key={i} className="rounded-none border border-white/[0.05] bg-surface-900/60 p-3 space-y-3">
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
+                            <label htmlFor={`rule-type-${i}`} className="sr-only">Rule {i + 1} action type</label>
                             <select
+                              id={`rule-type-${i}`}
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
@@ -670,7 +672,9 @@ export default function Home() {
                         </div>
 
                         <div className="flex items-center gap-3">
+                          <label htmlFor={`rule-pct-${i}`} className="sr-only">Rule {i + 1} allocation percentage</label>
                           <input
+                            id={`rule-pct-${i}`}
                             type="range"
                             min={0}
                             max={100}
@@ -684,13 +688,17 @@ export default function Home() {
 
                         {rule.type === "distribute" && (
                           <>
+                            <label htmlFor={`rule-holderMint-${i}`} className="sr-only">Rule {i + 1} distribution holder token mint</label>
                             <input
+                              id={`rule-holderMint-${i}`}
                               className="glass-input font-mono text-xs"
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
                             />
+                            <label htmlFor={`rule-targetMint-${i}`} className="sr-only">Rule {i + 1} distribution token to airdrop</label>
                             <input
+                              id={`rule-targetMint-${i}`}
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
@@ -704,6 +712,7 @@ export default function Home() {
                                     <button
                                       key={m.key}
                                       type="button"
+                                      aria-pressed={active}
                                       onClick={() => updateRule(i, { holderMode: m.key })}
                                       className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                                         active
@@ -724,20 +733,28 @@ export default function Home() {
                           </>
                         )}
                         {rule.type === "buy-burn" && (
-                          <input
-                            className="glass-input font-mono text-xs"
-                            value={rule.targetMint || ""}
-                            onChange={(e) => updateRule(i, { targetMint: e.target.value })}
-                            placeholder="Token mint to buy back & burn…"
-                          />
+                          <>
+                            <label htmlFor={`rule-targetMint-${i}`} className="sr-only">Rule {i + 1} buy back and burn token mint</label>
+                            <input
+                              id={`rule-targetMint-${i}`}
+                              className="glass-input font-mono text-xs"
+                              value={rule.targetMint || ""}
+                              onChange={(e) => updateRule(i, { targetMint: e.target.value })}
+                              placeholder="Token mint to buy back & burn…"
+                            />
+                          </>
                         )}
                         {rule.type === "send" && (
-                          <input
-                            className="glass-input font-mono text-xs"
-                            value={rule.targetWallet || ""}
-                            onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
-                            placeholder="Destination wallet address…"
-                          />
+                          <>
+                            <label htmlFor={`rule-targetWallet-${i}`} className="sr-only">Rule {i + 1} destination wallet address</label>
+                            <input
+                              id={`rule-targetWallet-${i}`}
+                              className="glass-input font-mono text-xs"
+                              value={rule.targetWallet || ""}
+                              onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
+                              placeholder="Destination wallet address…"
+                            />
+                          </>
                         )}
                       </div>
                     ))}
@@ -792,6 +809,7 @@ export default function Home() {
                         <button
                           key={p.key}
                           type="button"
+                          aria-pressed={active}
                           onClick={() => setDraft((d) => ({ ...d, pollIntervalKey: p.key }))}
                           className={`px-2 py-1.5 rounded-none border text-center transition-colors ${
                             active
