@@ -1,3 +1,7 @@
 ## 2026-07-16 - Accessible Form Elements and Screen Reader Optimization in Pipeline Creator
 **Learning:** Proper programmatic association using htmlFor, id, and aria-describedby for form elements, as well as marking decorative elements as aria-hidden="true" when adjacent to explicit text, provides a clean, robust, and noise-free experience for assistive technologies like screen readers without visual styling compromises.
 **Action:** Always link labels to inputs with id/htmlFor, connect instructions/hint texts to form inputs with aria-describedby, and hide redundant or decorative adjacent graphics/icons using aria-hidden="true".
+
+## 2026-08-03 - Accessible Dynamic Mapped Elements and Interactive Copy State Feedback
+**Learning:** When inputs, selections, and interactive buttons are generated dynamically within loops (e.g. user-defined rules lists), screen readers lose contextual distinctness without unique dynamic accessible names. Adding indexes or specific rule attributes to labels, combined with state-aware toggle and action indicators like `aria-pressed` and dynamic copying state descriptions, significantly elevates the interactive clarity and compliance of the page.
+**Action:** Always provide unique, dynamically interpolated `aria-label` names for form elements generated inside mapped loops, apply `aria-pressed` on custom button-group toggles, and use live state-aware labels for dynamic user actions like clipboard copying.
