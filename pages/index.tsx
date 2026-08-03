@@ -257,6 +257,7 @@ function TokenDetails() {
             <button
               className={`dazzle-copy btn-secondary text-sm shrink-0 py-1.5 px-3 ${copied ? "dazzle-copied" : ""}`}
               onClick={doCopy}
+              aria-label={copied ? "Contract address copied" : "Copy contract address"}
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -302,6 +303,14 @@ export default function Home() {
   const [deployResult, setDeployResult] = useState<any>(null);
   const [activating, setActivating] = useState(false);
   const [activateResult, setActivateResult] = useState<any>(null);
+  const [walletCopied, setWalletCopied] = useState(false);
+  const doCopyWallet = () => {
+    if (deployResult?.walletPublicKey) {
+      navigator.clipboard?.writeText(deployResult.walletPublicKey);
+      setWalletCopied(true);
+      setTimeout(() => setWalletCopied(false), 1200);
+    }
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validateResult, setValidateResult] = useState<any>(null);
@@ -649,6 +658,7 @@ export default function Home() {
                               className="glass-input text-sm !py-2 !pr-10 appearance-none w-full !border-pink-400/50 focus:!border-pink-400/80"
                               value={rule.type}
                               onChange={(e) => updateRule(i, { type: e.target.value as RuleType })}
+                              aria-label={`Rule ${i + 1} type`}
                             >
                               {RULE_OPTIONS.map((o) => (
                                 <option key={o.type} value={o.type}>{o.label}</option>
@@ -678,6 +688,7 @@ export default function Home() {
                             onChange={(e) => updateRule(i, { pct: Math.max(0, Math.min(100, Number(e.target.value))) })}
                             className="flex-1"
                             style={{ background: `linear-gradient(to right, #d946ef ${rule.pct}%, #1e293b ${rule.pct}%)` }}
+                            aria-label={`Rule ${i + 1} percentage allocation`}
                           />
                           <span className="w-12 text-right font-mono text-sm text-pink-300">{rule.pct}%</span>
                         </div>
@@ -689,12 +700,14 @@ export default function Home() {
                               value={rule.holderMint || ""}
                               onChange={(e) => updateRule(i, { holderMint: e.target.value })}
                               placeholder="Airdrop to holders of this token mint…"
+                              aria-label={`Rule ${i + 1} holders token mint`}
                             />
                             <input
                               className="glass-input font-mono text-xs"
                               value={rule.targetMint || ""}
                               onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                               placeholder="Token to airdrop (usually your own mint)…"
+                              aria-label={`Rule ${i + 1} token to airdrop mint`}
                             />
                             <div data-tour="holder-modes">
                               <div className="grid grid-cols-3 gap-1.5">
@@ -710,6 +723,7 @@ export default function Home() {
                                           ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
                                           : "border-white/[0.06] text-slate-400 hover:border-pink-400/30 hover:text-slate-200"
                                       }`}
+                                      aria-pressed={active}
                                     >
                                       <div className="text-xs font-bold">{m.label}</div>
                                       <div className="text-[10px] opacity-80">{m.hint}</div>
@@ -729,6 +743,7 @@ export default function Home() {
                             value={rule.targetMint || ""}
                             onChange={(e) => updateRule(i, { targetMint: e.target.value })}
                             placeholder="Token mint to buy back & burn…"
+                            aria-label={`Rule ${i + 1} token mint to buy and burn`}
                           />
                         )}
                         {rule.type === "send" && (
@@ -737,6 +752,7 @@ export default function Home() {
                             value={rule.targetWallet || ""}
                             onChange={(e) => updateRule(i, { targetWallet: e.target.value })}
                             placeholder="Destination wallet address…"
+                            aria-label={`Rule ${i + 1} destination wallet address`}
                           />
                         )}
                       </div>
@@ -798,6 +814,7 @@ export default function Home() {
                               ? "bg-pink-500/20 border-pink-400/50 text-pink-100"
                               : "border-white/[0.06] text-slate-400 hover:border-pink-400/30 hover:text-slate-200"
                           }`}
+                          aria-pressed={active}
                         >
                           <div className="text-xs font-bold">{p.label}</div>
                           <div className="text-[10px] opacity-80">{p.hint}</div>
@@ -838,10 +855,11 @@ export default function Home() {
                   <div className="flex gap-2">
                     <code className="glass-input font-mono text-xs flex-1 break-all py-2">{deployResult.walletPublicKey}</code>
                     <button
-                      className="btn-secondary shrink-0 text-xs"
-                      onClick={() => navigator.clipboard?.writeText(deployResult.walletPublicKey)}
+                      className={`btn-secondary shrink-0 text-xs py-1.5 px-3 ${walletCopied ? "dazzle-copied" : ""}`}
+                      onClick={doCopyWallet}
+                      aria-label={walletCopied ? "Pipeline wallet address copied" : "Copy pipeline wallet address"}
                     >
-                      Copy
+                      {walletCopied ? "Copied" : "Copy"}
                     </button>
                   </div>
                 </div>
